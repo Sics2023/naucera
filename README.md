@@ -2,6 +2,10 @@
 
 The new Naucera online store, built with Next.js. This first part is the **store admin dashboard**, which works like the Shopify or WooCommerce admin. The customer-facing storefront comes next and will share the same database.
 
+![Dashboard](docs/screenshots/2-dashboard.png)
+
+More screenshots are in [`docs/screenshots`](docs/screenshots).
+
 ## Admin features
 
 | Area | What you can do |
