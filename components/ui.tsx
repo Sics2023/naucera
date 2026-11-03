@@ -60,7 +60,7 @@ export function Thumb({ src, alt, size = 40 }: { src: string | null; alt: string
     <div className="shrink-0 overflow-hidden rounded-md border border-neutral-200 bg-neutral-50" style={{ width: size, height: size }}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} className="h-full w-full object-cover" />
+        <img src={src} alt={alt} className="h-full w-full object-contain" />
       ) : (
         <div className="grid h-full w-full place-items-center text-[10px] text-neutral-400">No image</div>
       )}

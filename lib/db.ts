@@ -1,7 +1,7 @@
 import mysql from "mysql2/promise";
 import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { seed } from "./seed";
-import { CATALOG_VERSION, insertCatalog, removeDemoData, upgradeCatalogToV3, STORE_CONTACT_DEFAULTS } from "./catalog";
+import { CATALOG_VERSION, insertCatalog, removeDemoData, upgradeCatalogToV3, upgradeCatalogToV4, STORE_CONTACT_DEFAULTS } from "./catalog";
 
 /**
  * MySQL / MariaDB connection (e.g. Hostinger hPanel → Databases → MySQL Databases).
@@ -230,6 +230,7 @@ async function migrateCatalog() {
       await insertCatalog(d);
     }
     if (current < 3) await upgradeCatalogToV3(d);
+    if (current < 4) await upgradeCatalogToV4(d);
     await d.run(
       "INSERT INTO settings (name, value) VALUES ('catalog_version', ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
       CATALOG_VERSION

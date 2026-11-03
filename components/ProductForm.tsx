@@ -109,7 +109,7 @@ export default function ProductForm({ categories, product, variants: initialVari
               {images.map((img, i) => (
                 <div key={img.url + i} className={`group relative aspect-square overflow-hidden rounded-lg border bg-neutral-50 ${i === 0 ? "col-span-2 row-span-2 border-brand-300" : "border-neutral-200"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={img.alt} className="h-full w-full object-cover" />
+                  <img src={img.url} alt={img.alt} className="h-full w-full object-contain p-1" />
                   {i === 0 && <span className="absolute top-2 left-2 rounded bg-ink/80 px-1.5 py-0.5 text-[11px] text-white">Cover</span>}
                   <div className="absolute inset-x-0 bottom-0 flex justify-between bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
                     <div className="flex gap-1">

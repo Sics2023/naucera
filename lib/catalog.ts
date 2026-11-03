@@ -5,14 +5,32 @@ import { packArt } from "./pack-art";
  * Naucera product catalogue, from "Naucera_Product_List.xlsx".
  * The sheet lists products and pack sizes only – prices and stock were not included,
  * so variants start at price 0, which the store shows as "Price on request".
- * Pack photos come from naucera.in (public/catalog); products without a matching photo
- * get a generated placeholder pack until a real photo is uploaded in the admin.
+ * Pack photos are the official artwork from the "Naucera Assets" brand folder (public/products),
+ * trimmed and converted to WebP. Products without a photo get a generated placeholder pack.
  */
 
-export const CATALOG_VERSION = "3";
+export const CATALOG_VERSION = "4";
 
-/** Real pack photos from naucera.in, per product slug (first = cover). */
+/** Official pack photos per product slug (first = cover; second = single-serve sachet or lifestyle shot). */
 export const CATALOG_IMAGES: Record<string, string[]> = {
+  "select-tea": ["/products/select-tea.webp"],
+  "kadak-tea": ["/products/kadak-tea.webp", "/products/kadak-tea-sachet.webp"],
+  "cardamom-tea-gold": ["/products/cardamom-tea-gold.webp"],
+  "lemon-tea": ["/products/lemon-tea.webp"],
+  "laung-elaichi-tea": ["/products/laung-elaichi-tea.webp", "/catalog/laung-elaichi-tea-2.webp"],
+  "select-coffee": ["/products/select-coffee.webp"],
+  "kadak-coffee": ["/products/kadak-coffee.webp", "/story/kadak-coffee-lifestyle.webp"],
+  "coffee-gold": ["/products/coffee-gold.webp"],
+  "special-coffee": ["/products/special-coffee.webp"],
+  "moh-maya": ["/products/moh-maya.webp", "/products/moh-maya-sachet.webp"],
+  "jalwa-lemonade": ["/products/jalwa-lemonade.webp", "/products/jalwa-lemonade-sachet.webp"],
+  "cold-coffee": ["/products/cold-coffee.webp", "/products/cold-coffee-sachet.webp"],
+  "lemon-iced-tea": ["/products/lemon-iced-tea.webp", "/products/lemon-iced-tea-sachet.webp"],
+  "aam-panna": ["/products/aam-panna.webp", "/products/aam-panna-sachet.webp"],
+};
+
+/** naucera.in photos used by catalogue v3 (public/catalog), replaced by the v4 upgrade if never edited. */
+const V3_CATALOG_IMAGES: Record<string, string[]> = {
   "kadak-tea": ["/catalog/kadak-tea-1kg.webp", "/catalog/kadak-tea-sachet.webp"],
   "cardamom-tea-gold": ["/catalog/cardamom-tea-gold.webp"],
   "lemon-tea": ["/catalog/lemon-tea.webp"],
@@ -162,6 +180,30 @@ export async function upgradeCatalogToV3(d: Db) {
   }
   for (const [k, v] of Object.entries(STORE_CONTACT_DEFAULTS)) {
     await d.run("INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = IF(value IS NULL OR value = '', VALUES(value), value)", k, v);
+  }
+}
+
+/**
+ * Upgrade to catalogue v4: swap the v3 naucera.in photos and generated placeholder packs for the official
+ * pack artwork. Products that have any image uploaded in the admin are left alone.
+ */
+export async function upgradeCatalogToV4(d: Db) {
+  const isPlaceholder = (u: string) => /^\/uploads\/\d+\/[a-z0-9-]+\.svg$/.test(u);
+  for (const p of NAUCERA_PRODUCTS) {
+    const slug = slugOf(p.title);
+    const photos = CATALOG_IMAGES[slug];
+    const row = await d.get<{ id: number }>("SELECT id FROM products WHERE slug = ?", slug);
+    if (!row || !photos) continue;
+    const urls = (await d.all<{ url: string }>("SELECT url FROM product_images WHERE product_id = ? ORDER BY position, id", row.id)).map((i) => i.url);
+    const stock = V3_CATALOG_IMAGES[slug] ?? [];
+    if (!urls.every((u) => isPlaceholder(u) || stock.includes(u))) continue;
+    if (urls.join("|") === photos.join("|")) continue;
+    for (const u of urls.filter(isPlaceholder)) {
+      await d.run("DELETE FROM media WHERE id = ? AND mime = 'image/svg+xml'", Number(/^\/uploads\/(\d+)\//.exec(u)![1]));
+    }
+    await d.run("DELETE FROM product_images WHERE product_id = ?", row.id);
+    for (const [i, url] of photos.entries()) await d.run("INSERT INTO product_images (product_id, url, alt, position) VALUES (?, ?, ?, ?)", row.id, url, p.title, i);
+    if (urls.every(isPlaceholder)) await d.run("UPDATE products SET featured = 1 WHERE id = ? AND featured = 0", row.id);
   }
 }
 
