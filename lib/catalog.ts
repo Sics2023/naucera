@@ -4,12 +4,15 @@ import { packArt } from "./pack-art";
 /**
  * Naucera product catalogue, from "Naucera_Product_List.xlsx".
  * The sheet lists products and pack sizes only – prices and stock were not included,
- * so variants start at price 0, which the store shows as "Price on request".
+ * so variants start at price 0, which the store shows as "Price on request", and STARTING_STOCK units.
  * Pack photos are the official artwork from the "Naucera Assets" brand folder (public/products),
  * trimmed and converted to WebP. Products without a photo get a generated placeholder pack.
  */
 
-export const CATALOG_VERSION = "4";
+export const CATALOG_VERSION = "5";
+
+/** Stock given to every pack size of the catalogue (catalogue v5). */
+export const STARTING_STOCK = 100;
 
 /** Official pack photos per product slug (first = cover; second = single-serve sachet or lifestyle shot). */
 export const CATALOG_IMAGES: Record<string, string[]> = {
@@ -137,8 +140,8 @@ export async function insertCatalog(d: Db) {
     const skuBase = "NC-" + slug.split("-").map((w) => w[0]).join("").toUpperCase();
     for (const [i, v] of p.variants.entries()) {
       await d.run(
-        "INSERT INTO product_variants (product_id, name, sku, price, compare_at_price, stock, weight_grams, position) VALUES (?, ?, ?, 0, NULL, 0, ?, ?)",
-        pid, v.name, `${skuBase}-${v.code}`, v.grams, i
+        "INSERT INTO product_variants (product_id, name, sku, price, compare_at_price, stock, weight_grams, position) VALUES (?, ?, ?, 0, NULL, ?, ?, ?)",
+        pid, v.name, `${skuBase}-${v.code}`, STARTING_STOCK, v.grams, i
       );
     }
   }
@@ -205,6 +208,11 @@ export async function upgradeCatalogToV4(d: Db) {
     for (const [i, url] of photos.entries()) await d.run("INSERT INTO product_images (product_id, url, alt, position) VALUES (?, ?, ?, ?)", row.id, url, p.title, i);
     if (urls.every(isPlaceholder)) await d.run("UPDATE products SET featured = 1 WHERE id = ? AND featured = 0", row.id);
   }
+}
+
+/** Upgrade to catalogue v5: sets the stock of every product variant to STARTING_STOCK (one time only). */
+export async function upgradeCatalogToV5(d: Db) {
+  await d.run("UPDATE product_variants SET stock = ?", STARTING_STOCK);
 }
 
 /* ---------- Removal of the demo data shipped with the first version ---------- */

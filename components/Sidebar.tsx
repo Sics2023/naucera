@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Home, ShoppingBag, Package, Boxes, Tags, Users, Settings, Menu, X, Store } from "lucide-react";
+import { Home, ShoppingBag, Package, Boxes, Tags, Users, Settings, Menu, X, Store, Inbox } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Home", icon: Home, exact: true },
@@ -12,10 +12,11 @@ const NAV = [
   { href: "/admin/inventory", label: "Inventory", icon: Boxes },
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/enquiries", label: "Enquiries", icon: Inbox },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export default function Sidebar({ storeName, openOrders }: { storeName: string; openOrders: number }) {
+export default function Sidebar({ storeName, openOrders, newEnquiries = 0 }: { storeName: string; openOrders: number; newEnquiries?: number }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [path]);
@@ -42,6 +43,9 @@ export default function Sidebar({ storeName, openOrders }: { storeName: string; 
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active ? "bg-white/10 font-medium text-white shadow-[inset_3px_0_0_var(--color-brand-500)]" : "text-white/70 hover:bg-white/5 hover:text-white"}`}>
                 <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
                 <span className="flex-1">{label}</span>
+                {label === "Enquiries" && newEnquiries > 0 && (
+                  <span className="rounded-full bg-gold px-2 py-0.5 text-[11px] font-semibold text-night">{newEnquiries}</span>
+                )}
                 {label === "Orders" && openOrders > 0 && (
                   <span className="rounded-full bg-gold px-2 py-0.5 text-[11px] font-semibold text-night">{openOrders}</span>
                 )}

@@ -7,6 +7,8 @@
   --color-teal: #002224;     /* product band */
   --color-olive: #6e5a01;    /* header gradient end */
   --color-gold: #d4b900;     /* highlight text */
+  --color-cream: #fbf4e6;    /* storytelling sections */
+  --color-forest: #163a2b;   /* deep green headlines and bands */
   /* Leaf green ramp, anchored on the site's #479b48 (= 500) */
   --color-brand-50: #eef7ee;
   --color-brand-100: #d8edd8;
@@ -57,3 +59,39 @@ body { background: #f4f5f4; color: #2a2b2a; }
 @utility td {
   @apply px-4 py-3 text-sm;
 }
+
+/* ---------- Storefront motion (components/store/Motion.tsx adds .is-in when an element scrolls into view) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  html.reveal-on [data-reveal] {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 1s cubic-bezier(0.2, 0.7, 0.2, 1), filter 1s ease, clip-path 1.3s cubic-bezier(0.7, 0, 0.2, 1);
+    transition-delay: var(--d, 0ms);
+  }
+  html.reveal-on [data-reveal="left"] { transform: translateX(-48px); }
+  html.reveal-on [data-reveal="right"] { transform: translateX(48px); }
+  html.reveal-on [data-reveal="scale"] { transform: scale(0.92); }
+  html.reveal-on [data-reveal="blur"] { transform: translateY(16px); filter: blur(14px); }
+  html.reveal-on [data-reveal="clip"] { opacity: 1; transform: none; clip-path: inset(18% 18% 18% 18% round 2rem); }
+  html.reveal-on [data-reveal="clip"] img { transform: scale(1.25); transition: transform 1.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  html.reveal-on [data-reveal].is-in { opacity: 1; transform: none; filter: none; }
+  html.reveal-on [data-reveal="clip"].is-in { clip-path: inset(0 0 0 0 round 2rem); }
+  html.reveal-on [data-reveal="clip"].is-in img { transform: scale(1); }
+
+  /* Headings revealed word by word (<SplitText>) */
+  html.reveal-on [data-split] .w > span {
+    transform: translateY(105%);
+    transition: transform 1s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: calc(var(--i) * 55ms + var(--d, 0ms));
+  }
+  html.reveal-on [data-split].is-in .w > span { transform: none; }
+
+  .marquee-track { animation: marquee var(--speed, 40s) linear infinite; }
+  .marquee:hover .marquee-track { animation-play-state: paused; }
+  .float-slow { animation: float-y 6s ease-in-out infinite; }
+}
+[data-split] .w { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 0.12em; margin-bottom: -0.12em; }
+[data-split] .w > span { display: inline-block; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+@keyframes float-y { 50% { transform: translateY(-14px); } }
+@keyframes fade-in { from { opacity: 0; transform: scale(0.96); } }

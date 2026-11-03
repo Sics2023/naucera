@@ -198,6 +198,24 @@ export async function updateOrder(fd: FormData) {
   redirect(`/admin/orders/${id}?saved=1`);
 }
 
+/* ---------- Enquiries ---------- */
+
+const ENQUIRY_STATUSES = ["new", "contacted", "closed"];
+
+export async function setEnquiryStatus(fd: FormData) {
+  await requireAdmin();
+  const status = str(fd, "status");
+  if (!ENQUIRY_STATUSES.includes(status)) return;
+  await run("UPDATE enquiries SET status = ? WHERE id = ?", status, Number(fd.get("id")));
+  revalidatePath("/admin", "layout");
+}
+
+export async function deleteEnquiry(fd: FormData) {
+  await requireAdmin();
+  await run("DELETE FROM enquiries WHERE id = ?", Number(fd.get("id")));
+  revalidatePath("/admin", "layout");
+}
+
 /* ---------- Settings ---------- */
 
 const SETTING_KEYS = ["store_name", "tagline", "email", "phone", "whatsapp", "address", "gstin", "shipping_flat", "free_shipping_threshold", "low_stock_threshold"];

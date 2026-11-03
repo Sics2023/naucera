@@ -1,7 +1,7 @@
 import mysql from "mysql2/promise";
 import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { seed } from "./seed";
-import { CATALOG_VERSION, insertCatalog, removeDemoData, upgradeCatalogToV3, upgradeCatalogToV4, STORE_CONTACT_DEFAULTS } from "./catalog";
+import { CATALOG_VERSION, insertCatalog, removeDemoData, upgradeCatalogToV3, upgradeCatalogToV4, upgradeCatalogToV5, STORE_CONTACT_DEFAULTS } from "./catalog";
 
 /**
  * MySQL / MariaDB connection (e.g. Hostinger hPanel → Databases → MySQL Databases).
@@ -160,6 +160,19 @@ const SCHEMA = [
     name VARCHAR(100) PRIMARY KEY,
     value TEXT
   )`,
+  // Enquiries from storefront forms (e.g. "Become a distributor").
+  `CREATE TABLE IF NOT EXISTS enquiries (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    kind VARCHAR(30) NOT NULL DEFAULT 'distributor',
+    name VARCHAR(191) NOT NULL,
+    phone VARCHAR(30) NOT NULL DEFAULT '',
+    email VARCHAR(191) NOT NULL DEFAULT '',
+    address VARCHAR(500) NOT NULL DEFAULT '',
+    message TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'new',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_enquiries_created (created_at)
+  )`,
   // Uploaded images are stored in the database so they survive redeploys.
   `CREATE TABLE IF NOT EXISTS media (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -231,6 +244,7 @@ async function migrateCatalog() {
     }
     if (current < 3) await upgradeCatalogToV3(d);
     if (current < 4) await upgradeCatalogToV4(d);
+    if (current < 5) await upgradeCatalogToV5(d);
     await d.run(
       "INSERT INTO settings (name, value) VALUES ('catalog_version', ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
       CATALOG_VERSION
