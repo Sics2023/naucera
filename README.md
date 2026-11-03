@@ -33,14 +33,12 @@ The app uses **MySQL / MariaDB**, for example the database included with Hosting
 
 | Key | Value |
 |---|---|
-| `DB_HOST` | `localhost` (or the host shown in hPanel) |
-| `DB_PORT` | `3306` |
-| `DB_NAME` | your database name, e.g. `u123456789_naucera` |
-| `DB_USER` | your database user, e.g. `u123456789_naucera` |
-| `DB_PASSWORD` | your database password |
+| `DB_PASSWORD` | your database password (required, never commit it to GitHub) |
 | `ADMIN_EMAIL` | admin login email |
 | `ADMIN_PASSWORD` | admin login password |
 | `SESSION_SECRET` | a long random string |
+
+   The database host, name and user default to `localhost` / `u993946615_naucera` (see `DEFAULTS` in `lib/db.ts`). Override them with `DB_HOST`, `DB_PORT`, `DB_NAME` and `DB_USER` if they change.
 
 3. Redeploy, then open `/admin`.
 

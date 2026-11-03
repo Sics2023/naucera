@@ -5,9 +5,9 @@ import { seed } from "./seed";
 /**
  * MySQL / MariaDB connection (e.g. Hostinger hPanel → Databases → MySQL Databases).
  *
- * Configure EITHER the separate variables (recommended – no URL-encoding needed):
- *   DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
- * OR a single URL:
+ * Only DB_PASSWORD is required (set it in the hosting environment variables).
+ * Host, port, user and database name default to the Hostinger values in DEFAULTS below
+ * and can be overridden with DB_HOST, DB_PORT, DB_USER, DB_NAME – or use a single
  *   DATABASE_URL=mysql://user:password@host:3306/dbname
  */
 
@@ -20,6 +20,14 @@ declare global {
   var __naucera_ready: Promise<void> | undefined;
 }
 
+/** Production database on Hostinger (not secret). Override any of these with DB_HOST / DB_PORT / DB_USER / DB_NAME. */
+const DEFAULTS = {
+  host: "localhost",
+  port: 3306,
+  user: "u993946615_naucera",
+  database: "u993946615_naucera",
+};
+
 function createPool(): Pool {
   const common = {
     connectionLimit: Number(process.env.DB_POOL_SIZE || 5),
@@ -30,21 +38,22 @@ function createPool(): Pool {
     timezone: "Z",
   };
   let pool: Pool;
-  if (process.env.DB_HOST || process.env.DB_NAME) {
-    pool = mysql.createPool({
-      ...common,
-      host: process.env.DB_HOST || "localhost",
-      port: Number(process.env.DB_PORT || 3306),
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    });
-  } else if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL) {
     pool = mysql.createPool({ ...common, uri: process.env.DATABASE_URL });
   } else {
-    throw new Error(
-      "Database is not configured. Set DB_HOST, DB_USER, DB_PASSWORD and DB_NAME (or DATABASE_URL) in the environment variables."
-    );
+    // Non-secret defaults match the Hostinger database. The password is NEVER stored in code –
+    // set DB_PASSWORD in the hosting environment variables.
+    if (!process.env.DB_PASSWORD) {
+      throw new Error("Database password is not configured. Add DB_PASSWORD in the environment variables.");
+    }
+    pool = mysql.createPool({
+      ...common,
+      host: process.env.DB_HOST || DEFAULTS.host,
+      port: Number(process.env.DB_PORT || DEFAULTS.port),
+      user: process.env.DB_USER || DEFAULTS.user,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME || DEFAULTS.database,
+    });
   }
   // Store and compare all timestamps in UTC.
   pool.pool.on("connection", (conn) => {
