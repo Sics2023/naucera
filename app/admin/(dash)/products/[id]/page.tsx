@@ -11,12 +11,12 @@ import ConfirmButton from "@/components/ConfirmButton";
 export default async function EditProduct({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string }> }) {
   const { id } = await params;
   const { saved } = await searchParams;
-  const data = getProduct(Number(id));
+  const data = await getProduct(Number(id));
   if (!data) notFound();
-  const sales = all<{ units: number; revenue: number }>(
+  const sales = (await all<{ units: number; revenue: number }>(
     `SELECT COALESCE(SUM(oi.qty),0) AS units, COALESCE(SUM(oi.qty*oi.price),0) AS revenue FROM order_items oi
      JOIN orders o ON o.id = oi.order_id WHERE oi.product_id = ? AND o.status != 'cancelled'`, Number(id)
-  )[0];
+  ))[0];
 
   return (
     <>
@@ -26,12 +26,12 @@ export default async function EditProduct({ params, searchParams }: { params: Pr
         <form action={deleteProduct}><input type="hidden" name="id" value={id} /><ConfirmButton message="Delete this product permanently? Past orders keep their line items.">Delete</ConfirmButton></form>
       </PageHeader>
       <Flash show={saved === "1"}>Product saved.</Flash>
-      <ProductForm key={data.product.updated_at} categories={listCategories()} {...data} />
+      <ProductForm key={data.product.updated_at} categories={await listCategories()} {...data} />
     </>
   );
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
-  const data = getProduct(Number((await params).id));
+  const data = await getProduct(Number((await params).id));
   return { title: data?.product.title ?? "Product" };
 }

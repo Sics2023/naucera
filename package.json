@@ -4,17 +4,17 @@
   "private": true,
   "description": "Naucera – coffee & tea premix store with admin dashboard",
   "scripts": {
-    "dev": "NODE_OPTIONS=--disable-warning=ExperimentalWarning next dev",
-    "build": "NODE_OPTIONS=--disable-warning=ExperimentalWarning next build",
-    "start": "NODE_OPTIONS=--disable-warning=ExperimentalWarning next start",
-    "lint": "tsc --noEmit",
-    "reset-db": "rm -rf data && echo 'Database removed. It will be re-created with sample data on next start.'"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit"
   },
   "engines": {
-    "node": ">=22.13"
+    "node": ">=20"
   },
   "dependencies": {
     "lucide-react": "^0.544.0",
+    "mysql2": "^3.24.6",
     "next": "^15.5.28",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

@@ -1,151 +1,243 @@
-import { DatabaseSync } from "node:sqlite";
-import fs from "node:fs";
-import path from "node:path";
+import mysql from "mysql2/promise";
+import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { seed } from "./seed";
 
-export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(process.cwd(), "data"));
-export const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
+/**
+ * MySQL / MariaDB connection (e.g. Hostinger hPanel → Databases → MySQL Databases).
+ *
+ * Configure EITHER the separate variables (recommended – no URL-encoding needed):
+ *   DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+ * OR a single URL:
+ *   DATABASE_URL=mysql://user:password@host:3306/dbname
+ */
+
+type Param = string | number | null | Buffer;
 
 declare global {
   // eslint-disable-next-line no-var
-  var __naucera_db: DatabaseSync | undefined;
+  var __naucera_pool: Pool | undefined;
+  // eslint-disable-next-line no-var
+  var __naucera_ready: Promise<void> | undefined;
 }
 
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS categories (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  description TEXT DEFAULT '',
-  sort INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS products (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  short_description TEXT DEFAULT '',
-  description TEXT DEFAULT '',
-  category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'draft',
-  tags TEXT DEFAULT '',
-  featured INTEGER DEFAULT 0,
-  ingredients TEXT DEFAULT '',
-  how_to_use TEXT DEFAULT '',
-  shelf_life TEXT DEFAULT '',
-  seo_title TEXT DEFAULT '',
-  seo_description TEXT DEFAULT '',
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS product_images (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  url TEXT NOT NULL,
-  alt TEXT DEFAULT '',
-  position INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS product_variants (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  sku TEXT DEFAULT '',
-  price REAL NOT NULL DEFAULT 0,
-  compare_at_price REAL,
-  stock INTEGER NOT NULL DEFAULT 0,
-  weight_grams INTEGER DEFAULT 0,
-  position INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS customers (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE,
-  phone TEXT DEFAULT '',
-  city TEXT DEFAULT '',
-  state TEXT DEFAULT '',
-  created_at TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS orders (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  number TEXT NOT NULL UNIQUE,
-  customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  payment_status TEXT NOT NULL DEFAULT 'pending',
-  payment_method TEXT DEFAULT 'UPI',
-  subtotal REAL NOT NULL DEFAULT 0,
-  shipping REAL NOT NULL DEFAULT 0,
-  discount REAL NOT NULL DEFAULT 0,
-  total REAL NOT NULL DEFAULT 0,
-  shipping_address TEXT DEFAULT '',
-  notes TEXT DEFAULT '',
-  created_at TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS order_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
-  variant_id INTEGER REFERENCES product_variants(id) ON DELETE SET NULL,
-  title TEXT NOT NULL,
-  variant_name TEXT DEFAULT '',
-  price REAL NOT NULL,
-  qty INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS settings (
-  key TEXT PRIMARY KEY,
-  value TEXT
-);
-
-CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
-CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(product_id);
-CREATE INDEX IF NOT EXISTS idx_images_product ON product_images(product_id);
-CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at);
-CREATE INDEX IF NOT EXISTS idx_items_order ON order_items(order_id);
-`;
-
-export function db(): DatabaseSync {
-  if (!globalThis.__naucera_db) {
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    const d = new DatabaseSync(path.join(DATA_DIR, "naucera.db"));
-    d.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
-    d.exec(SCHEMA);
-    const row = d.prepare("SELECT COUNT(*) AS n FROM categories").get() as { n: number };
-    if (row.n === 0) seed(d, UPLOAD_DIR);
-    globalThis.__naucera_db = d;
+function createPool(): Pool {
+  const common = {
+    connectionLimit: Number(process.env.DB_POOL_SIZE || 5),
+    waitForConnections: true,
+    charset: "utf8mb4_unicode_ci",
+    dateStrings: true as const, // return DATETIME as 'YYYY-MM-DD HH:MM:SS' (UTC)
+    decimalNumbers: true, // return DECIMAL / SUM() as JS numbers
+    timezone: "Z",
+  };
+  let pool: Pool;
+  if (process.env.DB_HOST || process.env.DB_NAME) {
+    pool = mysql.createPool({
+      ...common,
+      host: process.env.DB_HOST || "localhost",
+      port: Number(process.env.DB_PORT || 3306),
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+    });
+  } else if (process.env.DATABASE_URL) {
+    pool = mysql.createPool({ ...common, uri: process.env.DATABASE_URL });
+  } else {
+    throw new Error(
+      "Database is not configured. Set DB_HOST, DB_USER, DB_PASSWORD and DB_NAME (or DATABASE_URL) in the environment variables."
+    );
   }
-  return globalThis.__naucera_db;
+  // Store and compare all timestamps in UTC.
+  pool.pool.on("connection", (conn) => {
+    conn.query("SET time_zone = '+00:00'");
+  });
+  return pool;
 }
 
-/** Run fn inside a transaction. */
-export function tx<T>(fn: (d: DatabaseSync) => T): T {
-  const d = db();
-  d.exec("BEGIN");
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(191) NOT NULL,
+    slug VARCHAR(191) NOT NULL UNIQUE,
+    description TEXT,
+    sort INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    slug VARCHAR(191) NOT NULL UNIQUE,
+    short_description VARCHAR(500) NOT NULL DEFAULT '',
+    description TEXT,
+    category_id INT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+    tags VARCHAR(500) NOT NULL DEFAULT '',
+    featured TINYINT NOT NULL DEFAULT 0,
+    ingredients TEXT,
+    how_to_use TEXT,
+    shelf_life VARCHAR(255) NOT NULL DEFAULT '',
+    seo_title VARCHAR(255) NOT NULL DEFAULT '',
+    seo_description VARCHAR(500) NOT NULL DEFAULT '',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_products_category (category_id),
+    CONSTRAINT fk_products_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS product_images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    alt VARCHAR(255) NOT NULL DEFAULT '',
+    position INT NOT NULL DEFAULT 0,
+    INDEX idx_images_product (product_id),
+    CONSTRAINT fk_images_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS product_variants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    name VARCHAR(191) NOT NULL,
+    sku VARCHAR(100) NOT NULL DEFAULT '',
+    price DECIMAL(10,2) NOT NULL DEFAULT 0,
+    compare_at_price DECIMAL(10,2) NULL,
+    stock INT NOT NULL DEFAULT 0,
+    weight_grams INT NOT NULL DEFAULT 0,
+    position INT NOT NULL DEFAULT 0,
+    INDEX idx_variants_product (product_id),
+    CONSTRAINT fk_variants_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS customers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(191) NOT NULL,
+    email VARCHAR(191) NOT NULL UNIQUE,
+    phone VARCHAR(30) NOT NULL DEFAULT '',
+    city VARCHAR(100) NOT NULL DEFAULT '',
+    state VARCHAR(100) NOT NULL DEFAULT '',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    number VARCHAR(30) NOT NULL UNIQUE,
+    customer_id INT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    payment_method VARCHAR(50) NOT NULL DEFAULT 'UPI',
+    subtotal DECIMAL(10,2) NOT NULL DEFAULT 0,
+    shipping DECIMAL(10,2) NOT NULL DEFAULT 0,
+    discount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    total DECIMAL(10,2) NOT NULL DEFAULT 0,
+    shipping_address TEXT,
+    notes TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_orders_created (created_at),
+    INDEX idx_orders_customer (customer_id),
+    CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    product_id INT NULL,
+    variant_id INT NULL,
+    title VARCHAR(255) NOT NULL,
+    variant_name VARCHAR(191) NOT NULL DEFAULT '',
+    price DECIMAL(10,2) NOT NULL,
+    qty INT NOT NULL,
+    INDEX idx_items_order (order_id),
+    INDEX idx_items_product (product_id),
+    CONSTRAINT fk_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
+    CONSTRAINT fk_items_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS settings (
+    name VARCHAR(100) PRIMARY KEY,
+    value TEXT
+  )`,
+  // Uploaded images are stored in the database so they survive redeploys.
+  `CREATE TABLE IF NOT EXISTS media (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    mime VARCHAR(100) NOT NULL,
+    size INT NOT NULL,
+    data LONGBLOB NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+];
+
+export interface Db {
+  all<T>(sql: string, ...params: Param[]): Promise<T[]>;
+  get<T>(sql: string, ...params: Param[]): Promise<T | undefined>;
+  run(sql: string, ...params: Param[]): Promise<{ insertId: number; affectedRows: number }>;
+}
+
+function wrap(q: Pool | PoolConnection): Db {
+  return {
+    async all<T>(sql: string, ...params: Param[]) {
+      const [rows] = await q.query<RowDataPacket[]>(sql, params);
+      return rows as T[];
+    },
+    async get<T>(sql: string, ...params: Param[]) {
+      const [rows] = await q.query<RowDataPacket[]>(sql, params);
+      return rows[0] as T | undefined;
+    },
+    async run(sql: string, ...params: Param[]) {
+      const [res] = await q.query<ResultSetHeader>(sql, params);
+      return { insertId: res.insertId, affectedRows: res.affectedRows };
+    },
+  };
+}
+
+function pool(): Pool {
+  if (!globalThis.__naucera_pool) globalThis.__naucera_pool = createPool();
+  return globalThis.__naucera_pool;
+}
+
+/** Creates tables on first use and loads sample data into an empty database. */
+async function ready() {
+  if (!globalThis.__naucera_ready) {
+    globalThis.__naucera_ready = (async () => {
+      const p = pool();
+      for (const stmt of SCHEMA) await p.query(stmt);
+      const [rows] = await p.query<RowDataPacket[]>("SELECT COUNT(*) AS n FROM categories");
+      if (Number(rows[0].n) === 0 && process.env.SEED_SAMPLE_DATA !== "0") await tx((d) => seed(d));
+    })().catch((e) => {
+      globalThis.__naucera_ready = undefined; // retry on next request
+      throw e;
+    });
+  }
+  return globalThis.__naucera_ready;
+}
+
+/** Run fn inside a transaction on a single connection. */
+export async function tx<T>(fn: (d: Db) => Promise<T>): Promise<T> {
+  const conn = await pool().getConnection();
   try {
-    const r = fn(d);
-    d.exec("COMMIT");
+    await conn.beginTransaction();
+    const r = await fn(wrap(conn));
+    await conn.commit();
     return r;
   } catch (e) {
-    d.exec("ROLLBACK");
+    await conn.rollback().catch(() => {});
     throw e;
+  } finally {
+    conn.release();
   }
 }
 
-export function all<T>(sql: string, ...params: (string | number | null)[]): T[] {
-  // node:sqlite returns null-prototype objects; copy them so they can be passed to client components.
-  return db().prepare(sql).all(...params).map((r) => ({ ...r })) as T[];
+export async function all<T>(sql: string, ...params: Param[]): Promise<T[]> {
+  await ready();
+  return wrap(pool()).all<T>(sql, ...params);
 }
 
-export function get<T>(sql: string, ...params: (string | number | null)[]): T | undefined {
-  const r = db().prepare(sql).get(...params);
-  return (r ? { ...r } : undefined) as T | undefined;
+export async function get<T>(sql: string, ...params: Param[]): Promise<T | undefined> {
+  await ready();
+  return wrap(pool()).get<T>(sql, ...params);
 }
 
-export function run(sql: string, ...params: (string | number | null)[]) {
-  return db().prepare(sql).run(...params);
+export async function run(sql: string, ...params: Param[]) {
+  await ready();
+  return wrap(pool()).run(sql, ...params);
+}
+
+/** Transaction that first makes sure the schema exists. */
+export async function transaction<T>(fn: (d: Db) => Promise<T>): Promise<T> {
+  await ready();
+  return tx(fn);
 }

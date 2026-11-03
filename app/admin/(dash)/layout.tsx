@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function DashLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin();
-  const settings = getSettings();
-  const pending = get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing')")?.n ?? 0;
+  const settings = await getSettings();
+  const pending = (await get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing')"))?.n ?? 0;
   return (
     <div className="min-h-screen lg:pl-60">
       <Sidebar storeName={settings.store_name || "Naucera"} openOrders={pending} />

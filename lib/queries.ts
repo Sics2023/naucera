@@ -23,19 +23,19 @@ export type Order = {
   shipping_address: string; notes: string; created_at: string;
 };
 
-export function getSettings(): Record<string, string> {
-  const rows = all<{ key: string; value: string }>("SELECT key, value FROM settings");
-  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+export async function getSettings(): Promise<Record<string, string>> {
+  const rows = await all<{ name: string; value: string | null }>("SELECT name, value FROM settings");
+  return Object.fromEntries(rows.map((r) => [r.name, r.value ?? ""]));
 }
 
-export function listCategories(): Category[] {
+export async function listCategories(): Promise<Category[]> {
   return all<Category>(
     `SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count
      FROM categories c ORDER BY c.sort, c.name`
   );
 }
 
-export function listProducts(f: { q?: string; category?: string; status?: string; stock?: string } = {}): ProductRow[] {
+export async function listProducts(f: { q?: string; category?: string; status?: string; stock?: string } = {}): Promise<ProductRow[]> {
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (f.q) {
@@ -44,7 +44,7 @@ export function listProducts(f: { q?: string; category?: string; status?: string
   }
   if (f.category) { where.push("p.category_id = ?"); params.push(Number(f.category)); }
   if (f.status) { where.push("p.status = ?"); params.push(f.status); }
-  const rows = all<ProductRow>(
+  const rows = await all<ProductRow>(
     `SELECT p.*, c.name AS category_name,
        (SELECT url FROM product_images i WHERE i.product_id = p.id ORDER BY position, id LIMIT 1) AS image,
        (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id) AS variant_count,
@@ -58,16 +58,18 @@ export function listProducts(f: { q?: string; category?: string; status?: string
   );
   if (f.stock === "out") return rows.filter((r) => r.total_stock <= 0);
   if (f.stock === "low") {
-    const t = Number(getSettings().low_stock_threshold || 10);
+    const t = Number((await getSettings()).low_stock_threshold || 10);
     return rows.filter((r) => r.total_stock > 0 && r.total_stock <= t * r.variant_count);
   }
   return rows;
 }
 
-export function getProduct(id: number) {
-  const product = get<Product>("SELECT * FROM products WHERE id = ?", id);
+export async function getProduct(id: number) {
+  const product = await get<Product>("SELECT * FROM products WHERE id = ?", id);
   if (!product) return null;
-  const variants = all<Variant>("SELECT * FROM product_variants WHERE product_id = ? ORDER BY position, id", id);
-  const images = all<ProductImage>("SELECT * FROM product_images WHERE product_id = ? ORDER BY position, id", id);
+  const [variants, images] = await Promise.all([
+    all<Variant>("SELECT * FROM product_variants WHERE product_id = ? ORDER BY position, id", id),
+    all<ProductImage>("SELECT * FROM product_images WHERE product_id = ? ORDER BY position, id", id),
+  ]);
   return { product, variants, images };
 }

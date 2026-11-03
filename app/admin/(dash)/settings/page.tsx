@@ -19,7 +19,7 @@ function Field({ name, label, value, hint, type = "text", prefix }: { name: stri
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const { saved } = await searchParams;
-  const s = getSettings();
+  const s = await getSettings();
   return (
     <>
       <PageHeader title="Settings" subtitle="Store details, shipping and inventory preferences." />

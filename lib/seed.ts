@@ -1,6 +1,4 @@
-import type { DatabaseSync } from "node:sqlite";
-import fs from "node:fs";
-import path from "node:path";
+import type { Db } from "./db";
 import { packArt } from "./pack-art";
 
 /**
@@ -152,112 +150,100 @@ function rng(seed: number) {
   };
 }
 
-export function seed(d: DatabaseSync, uploadDir: string) {
+export async function seed(d: Db) {
   const rand = rng(42);
   const pick = <T,>(arr: T[]) => arr[Math.floor(rand() * arr.length)];
-  d.exec("BEGIN");
-  try {
-    const catIns = d.prepare("INSERT INTO categories (name, slug, description, sort) VALUES (?, ?, ?, ?)");
-    const catIds: Record<string, number> = {};
-    categories.forEach((c, i) => {
-      catIds[c.slug] = Number(catIns.run(c.name, c.slug, c.description, i).lastInsertRowid);
-    });
+  const ts = (msAgo: number) => new Date(Date.now() - msAgo).toISOString().slice(0, 19).replace("T", " ");
 
-    const pIns = d.prepare(
-      `INSERT INTO products (title, slug, short_description, description, category_id, status, tags, featured, ingredients, how_to_use, shelf_life, seo_title, seo_description, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    );
-    const vIns = d.prepare(
-      "INSERT INTO product_variants (product_id, name, sku, price, compare_at_price, stock, weight_grams, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    );
-    const iIns = d.prepare("INSERT INTO product_images (product_id, url, alt, position) VALUES (?, ?, ?, 0)");
-
-    const allVariants: { pid: number; vid: number; title: string; name: string; price: number }[] = [];
-    products.forEach((p, idx) => {
-      const slug = p.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-      const created = new Date(Date.now() - (120 - idx * 5) * 86400000).toISOString().slice(0, 19).replace("T", " ");
-      const desc = `${p.short}\n\nMade with carefully selected ingredients, ${p.title} gives you a consistent, great-tasting cup every single time. Perfect for homes, offices, cafés and travel.`;
-      const pid = Number(
-        pIns.run(
-          p.title, slug, p.short, desc, catIds[p.cat], p.status ?? "active", p.tags, p.featured ? 1 : 0, p.ingredients,
-          "Add 2 heaped teaspoons (approx. 18 g) to 150 ml of hot water. Stir well and enjoy.",
-          "9 months from date of manufacture", `${p.title} | Naucera`, p.short, created, created
-        ).lastInsertRowid
-      );
-      const file = `seed-${slug}.svg`;
-      fs.writeFileSync(path.join(uploadDir, file), packArt({ title: p.title.replace(/ Premix.*$/, ""), subtitle: p.label, color: p.color, accent: p.accent }));
-      iIns.run(pid, `/uploads/${file}`, p.title);
-      const skuBase = "NC-" + slug.split("-").map((w) => w[0]).join("").toUpperCase().slice(0, 4);
-      p.variants.forEach((v, vi) => {
-        const vid = Number(
-          vIns.run(pid, v.name, `${skuBase}-${v.grams >= 1000 ? v.grams / 1000 + "K" : v.grams}`, v.price, v.compare ?? null, v.stock, v.grams, vi).lastInsertRowid
-        );
-        if ((p.status ?? "active") === "active") allVariants.push({ pid, vid, title: p.title, name: v.name, price: v.price });
-      });
-    });
-
-    const cIns = d.prepare("INSERT INTO customers (name, email, phone, city, state, created_at) VALUES (?, ?, ?, ?, ?, ?)");
-    const custIds = customerSeed.map(([name, phone, city, state], i) => {
-      const email = name.toLowerCase().replace(/[^a-z]+/g, ".").replace(/(^\.|\.$)/g, "") + "@example.com";
-      const created = new Date(Date.now() - (90 - i * 4) * 86400000).toISOString().slice(0, 19).replace("T", " ");
-      return { id: Number(cIns.run(name, email, phone, city, state, created).lastInsertRowid), name, city, state };
-    });
-
-    const oIns = d.prepare(
-      `INSERT INTO orders (number, customer_id, status, payment_status, payment_method, subtotal, shipping, discount, total, shipping_address, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    );
-    const oiIns = d.prepare("INSERT INTO order_items (order_id, product_id, variant_id, title, variant_name, price, qty) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    const N = 86;
-    for (let i = 0; i < N; i++) {
-      const daysAgo = Math.floor(Math.pow(rand(), 1.3) * 60);
-      const date = new Date(Date.now() - daysAgo * 86400000 - Math.floor(rand() * 86400000));
-      const c = pick(custIds);
-      const isB2B = /Café|Canteen/.test(c.name);
-      const lines = 1 + Math.floor(rand() * 3);
-      const items: { v: (typeof allVariants)[number]; qty: number }[] = [];
-      for (let l = 0; l < lines; l++) {
-        const v = isB2B ? pick(allVariants.filter((x) => x.price > 500)) : pick(allVariants.filter((x) => x.price < 1100));
-        if (items.some((it) => it.v.vid === v.vid)) continue;
-        items.push({ v, qty: 1 + Math.floor(rand() * (isB2B ? 4 : 2)) });
-      }
-      const subtotal = items.reduce((s, it) => s + it.v.price * it.qty, 0);
-      const shipping = subtotal >= 499 ? 0 : 49;
-      const discount = rand() < 0.2 ? Math.round(subtotal * 0.1) : 0;
-      const total = subtotal + shipping - discount;
-      let status: string;
-      if (daysAgo <= 1) status = pick(["pending", "pending", "processing"]);
-      else if (daysAgo <= 4) status = pick(["processing", "shipped", "shipped"]);
-      else status = rand() < 0.06 ? "cancelled" : "delivered";
-      const method = pick(["UPI", "UPI", "UPI", "Card", "Cash on Delivery", "Net Banking"]);
-      const payment = status === "cancelled" ? "refunded" : method === "Cash on Delivery" && status !== "delivered" ? "pending" : "paid";
-      const addr = `${c.name}\n${10 + Math.floor(rand() * 200)}, ${pick(["MG Road", "Anna Nagar", "Indiranagar", "Park Street", "Banjara Hills", "Bandra West", "Koregaon Park"])}\n${c.city}, ${c.state}\nIndia`;
-      const oid = Number(
-        oIns.run(
-          `#${1001 + i}`, c.id, status, payment, method, subtotal, shipping, discount, total, addr,
-          date.toISOString().slice(0, 19).replace("T", " ")
-        ).lastInsertRowid
-      );
-      items.forEach((it) => oiIns.run(oid, it.v.pid, it.v.vid, it.v.title, it.v.name, it.v.price, it.qty));
-    }
-
-    const sIns = d.prepare("INSERT INTO settings (key, value) VALUES (?, ?)");
-    const settings: Record<string, string> = {
-      store_name: "Naucera",
-      tagline: "Coffee & Tea Premixes",
-      email: "hello@naucera.in",
-      phone: "+91 00000 00000",
-      address: "",
-      gstin: "",
-      currency: "INR",
-      shipping_flat: "49",
-      free_shipping_threshold: "499",
-      low_stock_threshold: "10",
-    };
-    for (const [k, v] of Object.entries(settings)) sIns.run(k, v);
-    d.exec("COMMIT");
-  } catch (e) {
-    d.exec("ROLLBACK");
-    throw e;
+  const catIds: Record<string, number> = {};
+  for (const [i, c] of categories.entries()) {
+    catIds[c.slug] = (await d.run("INSERT INTO categories (name, slug, description, sort) VALUES (?, ?, ?, ?)", c.name, c.slug, c.description, i)).insertId;
   }
+
+  const allVariants: { pid: number; vid: number; title: string; name: string; price: number }[] = [];
+  for (const [idx, p] of products.entries()) {
+    const slug = p.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const created = ts((120 - idx * 5) * 86400000);
+    const desc = `${p.short}\n\nMade with carefully selected ingredients, ${p.title} gives you a consistent, great-tasting cup every single time. Perfect for homes, offices, cafés and travel.`;
+    const pid = (
+      await d.run(
+        `INSERT INTO products (title, slug, short_description, description, category_id, status, tags, featured, ingredients, how_to_use, shelf_life, seo_title, seo_description, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        p.title, slug, p.short, desc, catIds[p.cat], p.status ?? "active", p.tags, p.featured ? 1 : 0, p.ingredients,
+        "Add 2 heaped teaspoons (approx. 18 g) to 150 ml of hot water. Stir well and enjoy.",
+        "9 months from date of manufacture", `${p.title} | Naucera`, p.short, created, created
+      )
+    ).insertId;
+    const svg = Buffer.from(packArt({ title: p.title.replace(/ Premix.*$/, ""), subtitle: p.label, color: p.color, accent: p.accent }));
+    const file = `${slug}.svg`;
+    const mid = (await d.run("INSERT INTO media (filename, mime, size, data) VALUES (?, 'image/svg+xml', ?, ?)", file, svg.length, svg)).insertId;
+    await d.run("INSERT INTO product_images (product_id, url, alt, position) VALUES (?, ?, ?, 0)", pid, `/uploads/${mid}/${file}`, p.title);
+    const skuBase = "NC-" + slug.split("-").map((w) => w[0]).join("").toUpperCase().slice(0, 4);
+    for (const [vi, v] of p.variants.entries()) {
+      const vid = (
+        await d.run(
+          "INSERT INTO product_variants (product_id, name, sku, price, compare_at_price, stock, weight_grams, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          pid, v.name, `${skuBase}-${v.grams >= 1000 ? v.grams / 1000 + "K" : v.grams}`, v.price, v.compare ?? null, v.stock, v.grams, vi
+        )
+      ).insertId;
+      if ((p.status ?? "active") === "active") allVariants.push({ pid, vid, title: p.title, name: v.name, price: v.price });
+    }
+  }
+
+  const custIds: { id: number; name: string; city: string; state: string }[] = [];
+  for (const [i, [name, phone, city, state]] of customerSeed.entries()) {
+    const email = name.toLowerCase().replace(/[^a-z]+/g, ".").replace(/(^\.|\.$)/g, "") + "@example.com";
+    const id = (await d.run("INSERT INTO customers (name, email, phone, city, state, created_at) VALUES (?, ?, ?, ?, ?, ?)", name, email, phone, city, state, ts((90 - i * 4) * 86400000))).insertId;
+    custIds.push({ id, name, city, state });
+  }
+
+  const N = 86;
+  for (let i = 0; i < N; i++) {
+    const daysAgo = Math.floor(Math.pow(rand(), 1.3) * 60);
+    const msAgo = daysAgo * 86400000 + Math.floor(rand() * 86400000);
+    const c = pick(custIds);
+    const isB2B = /Café|Canteen/.test(c.name);
+    const lines = 1 + Math.floor(rand() * 3);
+    const items: { v: (typeof allVariants)[number]; qty: number }[] = [];
+    for (let l = 0; l < lines; l++) {
+      const v = isB2B ? pick(allVariants.filter((x) => x.price > 500)) : pick(allVariants.filter((x) => x.price < 1100));
+      if (items.some((it) => it.v.vid === v.vid)) continue;
+      items.push({ v, qty: 1 + Math.floor(rand() * (isB2B ? 4 : 2)) });
+    }
+    const subtotal = items.reduce((s, it) => s + it.v.price * it.qty, 0);
+    const shipping = subtotal >= 499 ? 0 : 49;
+    const discount = rand() < 0.2 ? Math.round(subtotal * 0.1) : 0;
+    const total = subtotal + shipping - discount;
+    let status: string;
+    if (daysAgo <= 1) status = pick(["pending", "pending", "processing"]);
+    else if (daysAgo <= 4) status = pick(["processing", "shipped", "shipped"]);
+    else status = rand() < 0.06 ? "cancelled" : "delivered";
+    const method = pick(["UPI", "UPI", "UPI", "Card", "Cash on Delivery", "Net Banking"]);
+    const payment = status === "cancelled" ? "refunded" : method === "Cash on Delivery" && status !== "delivered" ? "pending" : "paid";
+    const addr = `${c.name}\n${10 + Math.floor(rand() * 200)}, ${pick(["MG Road", "Anna Nagar", "Indiranagar", "Park Street", "Banjara Hills", "Bandra West", "Koregaon Park"])}\n${c.city}, ${c.state}\nIndia`;
+    const oid = (
+      await d.run(
+        `INSERT INTO orders (number, customer_id, status, payment_status, payment_method, subtotal, shipping, discount, total, shipping_address, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?)`,
+        `#${1001 + i}`, c.id, status, payment, method, subtotal, shipping, discount, total, addr, ts(msAgo)
+      )
+    ).insertId;
+    for (const it of items) {
+      await d.run("INSERT INTO order_items (order_id, product_id, variant_id, title, variant_name, price, qty) VALUES (?, ?, ?, ?, ?, ?, ?)", oid, it.v.pid, it.v.vid, it.v.title, it.v.name, it.v.price, it.qty);
+    }
+  }
+
+  const settings: Record<string, string> = {
+    store_name: "Naucera",
+    tagline: "Coffee & Tea Premixes",
+    email: "hello@naucera.in",
+    phone: "+91 00000 00000",
+    address: "",
+    gstin: "",
+    currency: "INR",
+    shipping_flat: "49",
+    free_shipping_threshold: "499",
+    low_stock_threshold: "10",
+  };
+  for (const [k, v] of Object.entries(settings)) await d.run("INSERT INTO settings (name, value) VALUES (?, ?)", k, v);
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { checkCredentials, createSession, destroySession, requireAdmin, adminEmail } from "@/lib/auth";
-import { get, run, tx } from "@/lib/db";
+import { get, run, transaction, type Db } from "@/lib/db";
 import { slugify, ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/format";
 
 export type FormState = { error?: string } | undefined;
@@ -30,10 +30,11 @@ export async function logout() {
 type VariantInput = { id?: number; name: string; sku: string; price: string | number; compare_at_price?: string | number | null; stock: string | number; weight_grams?: string | number };
 type ImageInput = { url: string; alt?: string };
 
-function uniqueSlug(base: string, table: "products" | "categories", excludeId?: number) {
-  let slug = base || "item";
+async function uniqueSlug(base: string, table: "products" | "categories", excludeId?: number) {
+  const root = base || "item";
+  let slug = root;
   let n = 1;
-  while (get(`SELECT id FROM ${table} WHERE slug = ? AND id != ?`, slug, excludeId ?? -1)) slug = `${base}-${++n}`;
+  while (await get(`SELECT id FROM ${table} WHERE slug = ? AND id != ?`, slug, excludeId ?? -1)) slug = `${root}-${++n}`;
   return slug;
 }
 
@@ -57,7 +58,7 @@ export async function saveProduct(_: FormState, fd: FormData): Promise<FormState
     if (!(Number(v.price) >= 0) || String(v.price).trim() === "") return { error: `Enter a valid price for “${v.name}”.` };
   }
 
-  const slug = uniqueSlug(slugify(str(fd, "slug") || title), "products", id);
+  const slug = await uniqueSlug(slugify(str(fd, "slug") || title), "products", id);
   const fields = [
     title, slug, str(fd, "short_description"), str(fd, "description"),
     Number(fd.get("category_id")) || null, ["active", "draft", "archived"].includes(str(fd, "status")) ? str(fd, "status") : "draft",
@@ -65,39 +66,42 @@ export async function saveProduct(_: FormState, fd: FormData): Promise<FormState
     str(fd, "seo_title"), str(fd, "seo_description"),
   ] as const;
 
-  const productId = tx((d) => {
+  const productId = await transaction(async (d: Db) => {
     let pid = id;
     if (pid) {
-      d.prepare(
+      await d.run(
         `UPDATE products SET title=?, slug=?, short_description=?, description=?, category_id=?, status=?, tags=?, featured=?,
-         ingredients=?, how_to_use=?, shelf_life=?, seo_title=?, seo_description=?, updated_at=datetime('now') WHERE id=?`
-      ).run(...fields, pid);
-    } else {
-      pid = Number(
-        d.prepare(
-          `INSERT INTO products (title, slug, short_description, description, category_id, status, tags, featured,
-           ingredients, how_to_use, shelf_life, seo_title, seo_description) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
-        ).run(...fields).lastInsertRowid
+         ingredients=?, how_to_use=?, shelf_life=?, seo_title=?, seo_description=?, updated_at=UTC_TIMESTAMP() WHERE id=?`,
+        ...fields, pid
       );
+    } else {
+      pid = (
+        await d.run(
+          `INSERT INTO products (title, slug, short_description, description, category_id, status, tags, featured,
+           ingredients, how_to_use, shelf_life, seo_title, seo_description, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
+          ...fields
+        )
+      ).insertId;
     }
 
     // Variants: update existing, insert new, delete removed (keeps order history linked).
     const keep = variants.filter((v) => v.id).map((v) => Number(v.id));
-    d.prepare(`DELETE FROM product_variants WHERE product_id = ? ${keep.length ? `AND id NOT IN (${keep.map(() => "?").join(",")})` : ""}`).run(pid, ...keep);
-    variants.forEach((v, i) => {
+    await d.run(`DELETE FROM product_variants WHERE product_id = ? ${keep.length ? `AND id NOT IN (${keep.map(() => "?").join(",")})` : ""}`, pid, ...keep);
+    for (const [i, v] of variants.entries()) {
       const vals = [
         String(v.name).trim(), String(v.sku ?? "").trim(), Number(v.price),
         v.compare_at_price === "" || v.compare_at_price == null ? null : Number(v.compare_at_price),
         Math.max(0, Math.floor(Number(v.stock) || 0)), Math.floor(Number(v.weight_grams) || 0), i,
       ] as const;
-      if (v.id) d.prepare("UPDATE product_variants SET name=?, sku=?, price=?, compare_at_price=?, stock=?, weight_grams=?, position=? WHERE id=? AND product_id=?").run(...vals, Number(v.id), pid);
-      else d.prepare("INSERT INTO product_variants (name, sku, price, compare_at_price, stock, weight_grams, position, product_id) VALUES (?,?,?,?,?,?,?,?)").run(...vals, pid);
-    });
+      if (v.id) await d.run("UPDATE product_variants SET name=?, sku=?, price=?, compare_at_price=?, stock=?, weight_grams=?, position=? WHERE id=? AND product_id=?", ...vals, Number(v.id), pid);
+      else await d.run("INSERT INTO product_variants (name, sku, price, compare_at_price, stock, weight_grams, position, product_id) VALUES (?,?,?,?,?,?,?,?)", ...vals, pid);
+    }
 
-    d.prepare("DELETE FROM product_images WHERE product_id = ?").run(pid);
-    images.forEach((img, i) => {
-      if (img.url) d.prepare("INSERT INTO product_images (product_id, url, alt, position) VALUES (?,?,?,?)").run(pid, img.url, img.alt ?? title, i);
-    });
+    await d.run("DELETE FROM product_images WHERE product_id = ?", pid);
+    for (const [i, img] of images.entries()) {
+      if (img.url) await d.run("INSERT INTO product_images (product_id, url, alt, position) VALUES (?,?,?,?)", pid, String(img.url), String(img.alt ?? title), i);
+    }
     return pid;
   });
 
@@ -107,7 +111,7 @@ export async function saveProduct(_: FormState, fd: FormData): Promise<FormState
 
 export async function deleteProduct(fd: FormData) {
   await requireAdmin();
-  run("DELETE FROM products WHERE id = ?", Number(fd.get("id")));
+  await run("DELETE FROM products WHERE id = ?", Number(fd.get("id")));
   revalidatePath("/admin", "layout");
   redirect("/admin/products?deleted=1");
 }
@@ -115,18 +119,20 @@ export async function deleteProduct(fd: FormData) {
 export async function duplicateProduct(fd: FormData) {
   await requireAdmin();
   const src = Number(fd.get("id"));
-  const newId = tx((d) => {
-    const p = d.prepare("SELECT * FROM products WHERE id = ?").get(src) as Record<string, string | number | null> | undefined;
-    if (!p) throw new Error("Product not found");
-    const title = `${p.title} (Copy)`;
-    const pid = Number(
-      d.prepare(
-        `INSERT INTO products (title, slug, short_description, description, category_id, status, tags, featured, ingredients, how_to_use, shelf_life, seo_title, seo_description)
-         SELECT ?, ?, short_description, description, category_id, 'draft', tags, 0, ingredients, how_to_use, shelf_life, seo_title, seo_description FROM products WHERE id = ?`
-      ).run(title, uniqueSlug(slugify(title), "products"), src).lastInsertRowid
-    );
-    d.prepare("INSERT INTO product_variants (product_id, name, sku, price, compare_at_price, stock, weight_grams, position) SELECT ?, name, sku, price, compare_at_price, 0, weight_grams, position FROM product_variants WHERE product_id = ?").run(pid, src);
-    d.prepare("INSERT INTO product_images (product_id, url, alt, position) SELECT ?, url, alt, position FROM product_images WHERE product_id = ?").run(pid, src);
+  const p = await get<{ title: string }>("SELECT title FROM products WHERE id = ?", src);
+  if (!p) redirect("/admin/products");
+  const title = `${p.title} (Copy)`;
+  const slug = await uniqueSlug(slugify(title), "products");
+  const newId = await transaction(async (d) => {
+    const pid = (
+      await d.run(
+        `INSERT INTO products (title, slug, short_description, description, category_id, status, tags, featured, ingredients, how_to_use, shelf_life, seo_title, seo_description, created_at, updated_at)
+         SELECT ?, ?, short_description, description, category_id, 'draft', tags, 0, ingredients, how_to_use, shelf_life, seo_title, seo_description, UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM products WHERE id = ?`,
+        title, slug, src
+      )
+    ).insertId;
+    await d.run("INSERT INTO product_variants (product_id, name, sku, price, compare_at_price, stock, weight_grams, position) SELECT ?, name, sku, price, compare_at_price, 0, weight_grams, position FROM product_variants WHERE product_id = ?", pid, src);
+    await d.run("INSERT INTO product_images (product_id, url, alt, position) SELECT ?, url, alt, position FROM product_images WHERE product_id = ?", pid, src);
     return pid;
   });
   revalidatePath("/admin", "layout");
@@ -137,7 +143,7 @@ export async function setProductStatus(fd: FormData) {
   await requireAdmin();
   const status = str(fd, "status");
   if (!["active", "draft", "archived"].includes(status)) return;
-  run("UPDATE products SET status = ?, updated_at = datetime('now') WHERE id = ?", status, Number(fd.get("id")));
+  await run("UPDATE products SET status = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?", status, Number(fd.get("id")));
   revalidatePath("/admin", "layout");
 }
 
@@ -145,10 +151,10 @@ export async function setProductStatus(fd: FormData) {
 
 export async function updateStock(fd: FormData) {
   await requireAdmin();
-  tx((d) => {
+  await transaction(async (d) => {
     for (const [k, v] of fd.entries()) {
       const m = /^stock_(\d+)$/.exec(k);
-      if (m) d.prepare("UPDATE product_variants SET stock = ? WHERE id = ?").run(Math.max(0, Math.floor(Number(v) || 0)), Number(m[1]));
+      if (m) await d.run("UPDATE product_variants SET stock = ? WHERE id = ?", Math.max(0, Math.floor(Number(v) || 0)), Number(m[1]));
     }
   });
   revalidatePath("/admin", "layout");
@@ -162,16 +168,19 @@ export async function saveCategory(_: FormState, fd: FormData): Promise<FormStat
   const id = Number(fd.get("id") || 0) || undefined;
   const name = str(fd, "name");
   if (!name) return { error: "Category name is required." };
-  const slug = uniqueSlug(slugify(str(fd, "slug") || name), "categories", id);
-  if (id) run("UPDATE categories SET name=?, slug=?, description=? WHERE id=?", name, slug, str(fd, "description"), id);
-  else run("INSERT INTO categories (name, slug, description, sort) VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort),0)+1 FROM categories))", name, slug, str(fd, "description"));
+  const slug = await uniqueSlug(slugify(str(fd, "slug") || name), "categories", id);
+  if (id) await run("UPDATE categories SET name=?, slug=?, description=? WHERE id=?", name, slug, str(fd, "description"), id);
+  else {
+    const max = (await get<{ m: number | null }>("SELECT MAX(sort) AS m FROM categories"))?.m ?? 0;
+    await run("INSERT INTO categories (name, slug, description, sort) VALUES (?, ?, ?, ?)", name, slug, str(fd, "description"), Number(max) + 1);
+  }
   revalidatePath("/admin", "layout");
   redirect("/admin/categories?saved=1");
 }
 
 export async function deleteCategory(fd: FormData) {
   await requireAdmin();
-  run("DELETE FROM categories WHERE id = ?", Number(fd.get("id")));
+  await run("DELETE FROM categories WHERE id = ?", Number(fd.get("id")));
   revalidatePath("/admin", "layout");
   redirect("/admin/categories?deleted=1");
 }
@@ -184,7 +193,7 @@ export async function updateOrder(fd: FormData) {
   const status = str(fd, "status");
   const payment = str(fd, "payment_status");
   if (!(ORDER_STATUSES as readonly string[]).includes(status) || !(PAYMENT_STATUSES as readonly string[]).includes(payment)) return;
-  run("UPDATE orders SET status = ?, payment_status = ?, notes = ? WHERE id = ?", status, payment, str(fd, "notes"), id);
+  await run("UPDATE orders SET status = ?, payment_status = ?, notes = ? WHERE id = ?", status, payment, str(fd, "notes"), id);
   revalidatePath("/admin", "layout");
   redirect(`/admin/orders/${id}?saved=1`);
 }
@@ -195,8 +204,8 @@ const SETTING_KEYS = ["store_name", "tagline", "email", "phone", "address", "gst
 
 export async function saveSettings(fd: FormData) {
   await requireAdmin();
-  tx((d) => {
-    for (const k of SETTING_KEYS) d.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(k, str(fd, k));
+  await transaction(async (d) => {
+    for (const k of SETTING_KEYS) await d.run("INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)", k, str(fd, k));
   });
   revalidatePath("/admin", "layout");
   redirect("/admin/settings?saved=1");

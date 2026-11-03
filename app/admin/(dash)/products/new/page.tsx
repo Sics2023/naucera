@@ -4,11 +4,11 @@ import ProductForm from "@/components/ProductForm";
 
 export const metadata = { title: "Add product" };
 
-export default function NewProduct() {
+export default async function NewProduct() {
   return (
     <>
       <PageHeader title="Add product" back={{ href: "/admin/products", label: "Products" }} />
-      <ProductForm categories={listCategories()} />
+      <ProductForm categories={await listCategories()} />
     </>
   );
 }

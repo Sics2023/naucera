@@ -10,12 +10,12 @@ export const metadata = { title: "Home" };
 
 type Kpi = { revenue: number; orders: number; customers: number };
 
-function period(fromDays: number, toDays: number): Kpi {
-  return get<Kpi>(
+async function period(fromDays: number, toDays: number): Promise<Kpi> {
+  return (await get<Kpi>(
     `SELECT COALESCE(SUM(total),0) AS revenue, COUNT(*) AS orders, COUNT(DISTINCT customer_id) AS customers
-     FROM orders WHERE status != 'cancelled' AND created_at >= datetime('now', ?) AND created_at < datetime('now', ?)`,
-    `-${fromDays} days`, `-${toDays} days`
-  )!;
+     FROM orders WHERE status != 'cancelled' AND created_at >= UTC_TIMESTAMP() - INTERVAL ? DAY AND created_at < UTC_TIMESTAMP() - INTERVAL ? DAY`,
+    fromDays, toDays
+  ))!;
 }
 
 function Delta({ now, prev }: { now: number; prev: number }) {
@@ -29,16 +29,14 @@ function Delta({ now, prev }: { now: number; prev: number }) {
   );
 }
 
-export default function Dashboard() {
-  const settings = getSettings();
-  const cur = period(30, 0);
-  const prev = period(60, 30);
+export default async function Dashboard() {
+  const [settings, cur, prev] = await Promise.all([getSettings(), period(30, 0), period(60, 30)]);
   const aov = cur.orders ? cur.revenue / cur.orders : 0;
   const prevAov = prev.orders ? prev.revenue / prev.orders : 0;
 
-  const daily = all<{ date: string; revenue: number; orders: number }>(
-    `SELECT date(created_at) AS date, SUM(total) AS revenue, COUNT(*) AS orders FROM orders
-     WHERE status != 'cancelled' AND created_at >= date('now', '-29 days') GROUP BY date(created_at)`
+  const daily = await all<{ date: string; revenue: number; orders: number }>(
+    `SELECT DATE(created_at) AS date, SUM(total) AS revenue, COUNT(*) AS orders FROM orders
+     WHERE status != 'cancelled' AND created_at >= UTC_DATE() - INTERVAL 29 DAY GROUP BY DATE(created_at)`
   );
   const byDate = new Map(daily.map((d) => [d.date, d]));
   const series = Array.from({ length: 30 }, (_, i) => {
@@ -46,25 +44,25 @@ export default function Dashboard() {
     return byDate.get(d) ?? { date: d, revenue: 0, orders: 0 };
   });
 
-  const recent = all<{ id: number; number: string; customer: string; total: number; status: string; payment_status: string; created_at: string }>(
+  const recent = await all<{ id: number; number: string; customer: string; total: number; status: string; payment_status: string; created_at: string }>(
     `SELECT o.id, o.number, c.name AS customer, o.total, o.status, o.payment_status, o.created_at
      FROM orders o LEFT JOIN customers c ON c.id = o.customer_id ORDER BY o.created_at DESC LIMIT 6`
   );
-  const top = all<{ id: number; title: string; image: string | null; units: number; revenue: number }>(
+  const top = await all<{ id: number; title: string; image: string | null; units: number; revenue: number }>(
     `SELECT p.id, p.title, (SELECT url FROM product_images i WHERE i.product_id = p.id ORDER BY position LIMIT 1) AS image,
        SUM(oi.qty) AS units, SUM(oi.qty * oi.price) AS revenue
      FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
-     WHERE o.status != 'cancelled' AND o.created_at >= datetime('now','-30 days')
-     GROUP BY p.id ORDER BY revenue DESC LIMIT 5`
+     WHERE o.status != 'cancelled' AND o.created_at >= UTC_TIMESTAMP() - INTERVAL 30 DAY
+     GROUP BY p.id, p.title ORDER BY revenue DESC LIMIT 5`
   );
   const threshold = Number(settings.low_stock_threshold || 10);
-  const low = all<{ product_id: number; title: string; name: string; stock: number }>(
+  const low = await all<{ product_id: number; title: string; name: string; stock: number }>(
     `SELECT v.product_id, p.title, v.name, v.stock FROM product_variants v JOIN products p ON p.id = v.product_id
      WHERE p.status = 'active' AND v.stock <= ? ORDER BY v.stock ASC LIMIT 6`,
     threshold
   );
-  const toFulfil = get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing')")!.n;
-  const activeProducts = get<{ n: number }>("SELECT COUNT(*) AS n FROM products WHERE status = 'active'")!.n;
+  const toFulfil = (await get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing')"))!.n;
+  const activeProducts = (await get<{ n: number }>("SELECT COUNT(*) AS n FROM products WHERE status = 'active'"))!.n;
 
   const kpis = [
     { label: "Revenue · 30 days", value: inr(Math.round(cur.revenue)), now: cur.revenue, prev: prev.revenue },

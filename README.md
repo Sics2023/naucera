@@ -20,24 +20,43 @@ More screenshots are in [`docs/screenshots`](docs/screenshots).
 
 The admin is protected by a login, and it works on both desktop and mobile.
 
-> **Sample data:** on first start the app fills the database with a sample catalogue of 15 coffee and tea premixes, customers and about 3 months of orders. This lets the dashboard show realistic numbers in a demo. The product pack images are generated illustrations. Replace them with real product photos from the admin, or run `npm run reset-db` to start over.
+> **Sample data:** the first time the app connects to an empty database, it creates the tables and fills them with a sample catalogue of 15 coffee and tea premixes, customers and about 3 months of orders, so the dashboard shows realistic numbers in a demo. Set `SEED_SAMPLE_DATA=0` to start with an empty store instead.
+
+## Database
+
+The app uses **MySQL / MariaDB**, for example the database included with Hostinger hosting. Tables are created automatically on first start. Uploaded product images are also stored in the database (`media` table), so they survive redeploys.
+
+### Hostinger setup
+
+1. In hPanel, go to **Databases → MySQL Databases** and create a database and user. Note the database name, username and password.
+2. In your Node.js app's **Environment variables**, add:
+
+| Key | Value |
+|---|---|
+| `DB_HOST` | `localhost` (or the host shown in hPanel) |
+| `DB_PORT` | `3306` |
+| `DB_NAME` | your database name, e.g. `u123456789_naucera` |
+| `DB_USER` | your database user, e.g. `u123456789_naucera` |
+| `DB_PASSWORD` | your database password |
+| `ADMIN_EMAIL` | admin login email |
+| `ADMIN_PASSWORD` | admin login password |
+| `SESSION_SECRET` | a long random string |
+
+3. Redeploy, then open `/admin`.
+
+You can use a single `DATABASE_URL=mysql://user:password@host:3306/dbname` instead of the separate `DB_*` variables. Special characters in the password must then be URL-encoded.
 
 ## Run it locally
 
-You need **Node.js 22.13 or newer**. The app uses Node's built-in SQLite, so there's no database server to install.
+You need Node.js 20 or newer and a MySQL or MariaDB database.
 
 ```bash
 npm install
-cp .env.example .env.local   # then change the admin password and SESSION_SECRET
+cp .env.example .env.local   # fill in the DB_* values and admin password
 npm run dev
 ```
 
-Open http://localhost:3000/admin and sign in.
-
-Default demo login (change it in `.env.local`):
-
-- Email: `admin@naucera.in`
-- Password: `naucera@123`
+Open http://localhost:3000/admin and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
 For a production build:
 
@@ -48,7 +67,7 @@ npm run build && npm start
 ## Tech
 
 - Next.js 15 (App Router, Server Actions), React 19, TypeScript and Tailwind CSS 4
-- SQLite via `node:sqlite`. The database and uploaded images are stored in `DATA_DIR` (default `./data`, which git ignores).
+- MySQL / MariaDB via `mysql2`. Prices are stored as `DECIMAL`, timestamps in UTC.
 - Admin sessions use an HMAC-signed, httpOnly cookie.
 
 ### Project layout
@@ -57,17 +76,13 @@ npm run build && npm start
 app/admin/login            Sign-in page
 app/admin/(dash)/...       Dashboard, products, inventory, categories, orders, customers, settings
 app/admin/actions.ts       All create/update/delete server actions
-app/api/admin/upload       Image upload endpoint
+app/api/admin/upload       Image upload endpoint (stores images in MySQL)
 app/api/admin/export       Products CSV export
 app/uploads/[...path]      Serves uploaded images
-lib/db.ts                  Database connection + schema
+lib/db.ts                  MySQL connection + schema
 lib/seed.ts                Sample data
 components/                Shared UI (sidebar, product form, chart, ...)
 ```
-
-### Deploying
-
-The app needs a server with a **persistent disk** for the SQLite file and uploaded images. A VPS, Railway, Render with a disk, or Fly.io with a volume all work. Set `DATA_DIR` to the mounted disk. For Vercel or other serverless hosting, move the data layer in `lib/db.ts` to Postgres and store images in S3 or Cloudinary.
 
 ## Roadmap
 

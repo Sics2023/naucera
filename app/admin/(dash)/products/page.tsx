@@ -10,8 +10,7 @@ type SP = Promise<{ q?: string; category?: string; status?: string; stock?: stri
 
 export default async function ProductsPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const products = listProducts(sp);
-  const categories = listCategories();
+  const [products, categories] = await Promise.all([listProducts(sp), listCategories()]);
   const tabs = [
     { label: "All", status: "" },
     { label: "Active", status: "active" },

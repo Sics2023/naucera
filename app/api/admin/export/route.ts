@@ -8,7 +8,7 @@ const esc = (v: unknown) => {
 
 export async function GET() {
   if (!(await getSession())) return new Response("Not signed in", { status: 401 });
-  const rows = all<Record<string, unknown>>(
+  const rows = await all<Record<string, unknown>>(
     `SELECT p.id, p.title, p.slug, p.status, c.name AS category, p.tags, v.name AS variant, v.sku, v.price, v.compare_at_price, v.stock, v.weight_grams
      FROM products p LEFT JOIN categories c ON c.id = p.category_id LEFT JOIN product_variants v ON v.product_id = p.id
      ORDER BY p.id, v.position`

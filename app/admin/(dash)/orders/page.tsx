@@ -24,7 +24,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
   else if (sp.status) { where.push("o.status = ?"); params.push(sp.status); }
   if (sp.payment) { where.push("o.payment_status = ?"); params.push(sp.payment); }
   if (sp.q) { where.push("(o.number LIKE ? OR c.name LIKE ? OR c.email LIKE ? OR c.phone LIKE ?)"); params.push(...Array(4).fill(`%${sp.q}%`)); }
-  const orders = all<{ id: number; number: string; customer: string | null; city: string | null; total: number; status: string; payment_status: string; payment_method: string; created_at: string; items: number }>(
+  const orders = await all<{ id: number; number: string; customer: string | null; city: string | null; total: number; status: string; payment_status: string; payment_method: string; created_at: string; items: number }>(
     `SELECT o.id, o.number, c.name AS customer, c.city, o.total, o.status, o.payment_status, o.payment_method, o.created_at,
        (SELECT SUM(qty) FROM order_items oi WHERE oi.order_id = o.id) AS items
      FROM orders o LEFT JOIN customers c ON c.id = o.customer_id

@@ -9,8 +9,8 @@ export const metadata = { title: "Inventory" };
 
 export default async function Inventory({ searchParams }: { searchParams: Promise<{ filter?: string; saved?: string }> }) {
   const { filter, saved } = await searchParams;
-  const threshold = Number(getSettings().low_stock_threshold || 10);
-  const rows = all<{ id: number; product_id: number; title: string; name: string; sku: string; price: number; stock: number; status: string; image: string | null }>(
+  const threshold = Number((await getSettings()).low_stock_threshold || 10);
+  const rows = await all<{ id: number; product_id: number; title: string; name: string; sku: string; price: number; stock: number; status: string; image: string | null }>(
     `SELECT v.id, v.product_id, p.title, v.name, v.sku, v.price, v.stock, p.status,
        (SELECT url FROM product_images i WHERE i.product_id = p.id ORDER BY position LIMIT 1) AS image
      FROM product_variants v JOIN products p ON p.id = v.product_id

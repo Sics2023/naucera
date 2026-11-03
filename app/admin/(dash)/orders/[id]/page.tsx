@@ -10,11 +10,11 @@ import { Check } from "lucide-react";
 export default async function OrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string }> }) {
   const id = Number((await params).id);
   const { saved } = await searchParams;
-  const order = get<Order>("SELECT * FROM orders WHERE id = ?", id);
+  const order = await get<Order>("SELECT * FROM orders WHERE id = ?", id);
   if (!order) notFound();
-  const customer = order.customer_id ? get<{ id: number; name: string; email: string; phone: string }>("SELECT * FROM customers WHERE id = ?", order.customer_id) : undefined;
-  const orderCount = customer ? get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE customer_id = ?", customer.id)!.n : 0;
-  const items = all<{ id: number; product_id: number | null; title: string; variant_name: string; price: number; qty: number; image: string | null; sku: string | null }>(
+  const customer = order.customer_id ? await get<{ id: number; name: string; email: string; phone: string }>("SELECT * FROM customers WHERE id = ?", order.customer_id) : undefined;
+  const orderCount = customer ? (await get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE customer_id = ?", customer.id))!.n : 0;
+  const items = await all<{ id: number; product_id: number | null; title: string; variant_name: string; price: number; qty: number; image: string | null; sku: string | null }>(
     `SELECT oi.*, v.sku, (SELECT url FROM product_images i WHERE i.product_id = oi.product_id ORDER BY position LIMIT 1) AS image
      FROM order_items oi LEFT JOIN product_variants v ON v.id = oi.variant_id WHERE oi.order_id = ?`, id
   );

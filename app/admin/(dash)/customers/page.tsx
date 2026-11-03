@@ -8,11 +8,14 @@ export const metadata = { title: "Customers" };
 
 export default async function Customers({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
-  const rows = all<{ id: number; name: string; email: string; phone: string; city: string; state: string; created_at: string; orders: number; spent: number; last: string | null }>(
-    `SELECT c.*, COUNT(o.id) AS orders, COALESCE(SUM(CASE WHEN o.status != 'cancelled' THEN o.total END),0) AS spent, MAX(o.created_at) AS last
-     FROM customers c LEFT JOIN orders o ON o.customer_id = c.id
+  const rows = await all<{ id: number; name: string; email: string; phone: string; city: string; state: string; created_at: string; orders: number; spent: number; last: string | null }>(
+    `SELECT c.*,
+       (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS orders,
+       (SELECT COALESCE(SUM(o.total),0) FROM orders o WHERE o.customer_id = c.id AND o.status != 'cancelled') AS spent,
+       (SELECT MAX(o.created_at) FROM orders o WHERE o.customer_id = c.id) AS last
+     FROM customers c
      ${q ? "WHERE c.name LIKE ? OR c.email LIKE ? OR c.phone LIKE ? OR c.city LIKE ?" : ""}
-     GROUP BY c.id ORDER BY spent DESC`,
+     ORDER BY spent DESC`,
     ...(q ? Array(4).fill(`%${q}%`) : [])
   );
   return (

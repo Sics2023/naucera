@@ -9,7 +9,7 @@ export const metadata = { title: "Categories" };
 
 export default async function Categories({ searchParams }: { searchParams: Promise<{ edit?: string; saved?: string; deleted?: string }> }) {
   const sp = await searchParams;
-  const cats = listCategories();
+  const cats = await listCategories();
   const editing = sp.edit ? cats.find((c) => c.id === Number(sp.edit)) : undefined;
   return (
     <>
