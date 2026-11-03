@@ -58,9 +58,6 @@ export async function saveProduct(_: FormState, fd: FormData): Promise<FormState
     if (!(Number(v.price) >= 0) || String(v.price).trim() === "") return { error: `Enter a valid price for “${v.name}”.` };
   }
 
-  if (str(fd, "status") === "active" && variants.some((v) => !(Number(v.price) > 0))) {
-    return { error: "Set a price for every pack size before making the product Active (or save it as Draft)." };
-  }
   const slug = await uniqueSlug(slugify(str(fd, "slug") || title), "products", id);
   const fields = [
     title, slug, str(fd, "short_description"), str(fd, "description"),
@@ -203,7 +200,7 @@ export async function updateOrder(fd: FormData) {
 
 /* ---------- Settings ---------- */
 
-const SETTING_KEYS = ["store_name", "tagline", "email", "phone", "address", "gstin", "shipping_flat", "free_shipping_threshold", "low_stock_threshold"];
+const SETTING_KEYS = ["store_name", "tagline", "email", "phone", "whatsapp", "address", "gstin", "shipping_flat", "free_shipping_threshold", "low_stock_threshold"];
 
 export async function saveSettings(fd: FormData) {
   await requireAdmin();

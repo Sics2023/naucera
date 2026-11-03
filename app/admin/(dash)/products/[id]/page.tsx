@@ -22,6 +22,7 @@ export default async function EditProduct({ params, searchParams }: { params: Pr
     <>
       <PageHeader title={data.product.title} subtitle={`${sales.units} units sold · ${inr(Math.round(sales.revenue))} lifetime sales`} back={{ href: "/admin/products", label: "Products" }}>
         <Badge tone={data.product.status} />
+        {data.product.status === "active" && <a href={`/products/${data.product.slug}`} target="_blank" rel="noopener" className="btn-secondary">View in store ↗</a>}
         <form action={duplicateProduct}><input type="hidden" name="id" value={id} /><button className="btn-secondary"><Copy size={15} /> Duplicate</button></form>
         <form action={deleteProduct}><input type="hidden" name="id" value={id} /><ConfirmButton message="Delete this product permanently? Past orders keep their line items.">Delete</ConfirmButton></form>
       </PageHeader>

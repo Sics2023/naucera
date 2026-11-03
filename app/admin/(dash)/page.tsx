@@ -120,7 +120,7 @@ export default async function Dashboard() {
             {needPrice > 0 && (
               <li>
                 <Link href="/admin/products?status=draft" className="flex items-center justify-between rounded-lg bg-red-50 px-3 py-2.5 text-red-900 hover:bg-red-100">
-                  <span><b>{needPrice}</b> product{needPrice === 1 ? " needs" : "s need"} a price</span><span>→</span>
+                  <span><b>{needPrice}</b> product{needPrice === 1 ? " has" : "s have"} no price <span className="font-normal">(“Price on request”)</span></span><span>→</span>
                 </Link>
               </li>
             )}

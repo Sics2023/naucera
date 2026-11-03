@@ -1,7 +1,7 @@
 import mysql from "mysql2/promise";
 import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { seed } from "./seed";
-import { CATALOG_VERSION, insertCatalog, removeDemoData } from "./catalog";
+import { CATALOG_VERSION, insertCatalog, removeDemoData, upgradeCatalogToV3, STORE_CONTACT_DEFAULTS } from "./catalog";
 
 /**
  * MySQL / MariaDB connection (e.g. Hostinger hPanel → Databases → MySQL Databases).
@@ -223,15 +223,20 @@ async function ready() {
 async function migrateCatalog() {
   await tx(async (d) => {
     const v = await d.get<{ value: string }>("SELECT value FROM settings WHERE name = 'catalog_version' FOR UPDATE");
-    if (v && Number(v.value) >= Number(CATALOG_VERSION)) return;
-    await removeDemoData(d);
-    await insertCatalog(d);
+    const current = Number(v?.value ?? 1);
+    if (current >= Number(CATALOG_VERSION)) return;
+    if (current < 2) {
+      await removeDemoData(d);
+      await insertCatalog(d);
+    }
+    if (current < 3) await upgradeCatalogToV3(d);
     await d.run(
       "INSERT INTO settings (name, value) VALUES ('catalog_version', ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
       CATALOG_VERSION
     );
     await d.run("UPDATE settings SET value = 'Tea, Coffee & Cooler Premixes' WHERE name = 'tagline' AND value = 'Coffee & Tea Premixes'");
-    await d.run("UPDATE settings SET value = '' WHERE name IN ('email', 'phone') AND value IN ('hello@naucera.in', '+91 00000 00000')");
+    await d.run("UPDATE settings SET value = '' WHERE name = 'email' AND value = 'hello@naucera.in'");
+    await d.run("UPDATE settings SET value = ? WHERE name = 'phone' AND value = '+91 00000 00000'", STORE_CONTACT_DEFAULTS.phone);
   });
 }
 

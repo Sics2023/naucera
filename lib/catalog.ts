@@ -4,10 +4,50 @@ import { packArt } from "./pack-art";
 /**
  * Naucera product catalogue, from "Naucera_Product_List.xlsx".
  * The sheet lists products and pack sizes only – prices and stock were not included,
- * so products are created as DRAFT with price 0 until they are filled in from the admin.
+ * so variants start at price 0, which the store shows as "Price on request".
+ * Pack photos come from naucera.in (public/catalog); products without a matching photo
+ * get a generated placeholder pack until a real photo is uploaded in the admin.
  */
 
-export const CATALOG_VERSION = "2";
+export const CATALOG_VERSION = "3";
+
+/** Real pack photos from naucera.in, per product slug (first = cover). */
+export const CATALOG_IMAGES: Record<string, string[]> = {
+  "kadak-tea": ["/catalog/kadak-tea-1kg.webp", "/catalog/kadak-tea-sachet.webp"],
+  "cardamom-tea-gold": ["/catalog/cardamom-tea-gold.webp"],
+  "lemon-tea": ["/catalog/lemon-tea.webp"],
+  "laung-elaichi-tea": ["/catalog/laung-elaichi-tea.webp", "/catalog/laung-elaichi-tea-2.webp"],
+  "kadak-coffee": ["/catalog/kadak-coffee-1kg.webp", "/story/kadak-coffee-lifestyle.webp"],
+  "special-coffee": ["/catalog/special-coffee.webp"],
+  "moh-maya": ["/catalog/moh-maya.webp"],
+  "cold-coffee": ["/catalog/cold-coffee.webp"],
+  "aam-panna": ["/catalog/aam-panna.webp"],
+};
+
+/** Draft product copy – review and edit in the admin. */
+export const CATALOG_DESCRIPTIONS: Record<string, string> = {
+  "select-tea": "A smooth, well-balanced tea premix for an everyday cup of chai. Just add hot water, stir and enjoy.",
+  "kadak-tea": "Strong, bold and full-bodied – Kadak Tea is made for those who like their chai with a kick. Available in a 1 kg pack and handy single-serve sachets.",
+  "cardamom-tea-gold": "Fragrant elaichi chai with the rich, comforting aroma of cardamom in every sip.",
+  "lemon-tea": "A light, refreshing lemon-flavoured tea premix – a zesty pick-me-up at any time of day.",
+  "laung-elaichi-tea": "The warming spice of laung (clove) and elaichi (cardamom) in a single-serve sachet – perfect for chai on the go.",
+  "select-coffee": "A smooth, creamy instant coffee premix for a dependable cup, every time.",
+  "kadak-coffee": "Bold, strong and aromatic – Kadak Coffee is for those who like their coffee with character.",
+  "coffee-gold": "A rich, premium coffee premix for an indulgent, café-style cup.",
+  "special-coffee": "Our Special Coffee in a single-serve sachet – a creamy cup of coffee wherever you are.",
+  "moh-maya": "A refreshing cold-drink premix – mix with chilled water and ice for an instant cooler.",
+  "jalwa-lemonade": "Tangy, refreshing lemonade in an instant – mix with chilled water for a burst of citrus.",
+  "cold-coffee": "Café-style cold coffee in seconds – just mix with chilled water and add ice.",
+  "lemon-iced-tea": "Chilled tea with a squeeze of lemon – a cool, refreshing iced tea in seconds.",
+  "aam-panna": "The classic Indian raw-mango summer cooler, ready in seconds.",
+};
+
+/** Contact details shown on naucera.in, used as store defaults when empty. */
+export const STORE_CONTACT_DEFAULTS: Record<string, string> = {
+  phone: "+91 91270 64580",
+  whatsapp: "919127064580",
+  address: "707, N.T. Road, Nalbari, Assam 781335, India",
+};
 
 export const NAUCERA_CATEGORIES = [
   { name: "Tea Premixes", slug: "tea-premixes", description: "Instant tea premixes – 1 kg packs and single-serve sachets." },
@@ -56,21 +96,25 @@ export async function insertCatalog(d: Db) {
     const slug = slugOf(p.title);
     if (await d.get("SELECT id FROM products WHERE slug = ?", slug)) continue;
     const catName = NAUCERA_CATEGORIES.find((c) => c.slug === p.cat)!.name;
-    const sizes = p.variants.map((v) => (v === KG ? "1 kg pack" : "single-serve sachet")).join(" and ");
-    const short = `${p.title} – ${catName.toLowerCase().replace(/s$/, "")}, available as ${sizes}.`;
+    const short = CATALOG_DESCRIPTIONS[slug] ?? `${p.title} – ${catName.toLowerCase().replace(/es$/, "")}.`;
     const tags = [catName.split(" ")[0].toLowerCase(), "premix", ...p.variants.map((v) => (v === KG ? "1kg" : "sachet"))].join(", ");
     const pid = (
       await d.run(
         `INSERT INTO products (title, slug, short_description, description, category_id, status, tags, featured, ingredients, how_to_use, shelf_life, seo_title, seo_description, created_at, updated_at)
-         VALUES (?, ?, ?, '', ?, 'draft', ?, 0, '', '', '', ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
-        p.title, slug, short, catIds[p.cat], tags, `${p.title} | Naucera`, short
+         VALUES (?, ?, ?, ?, ?, 'active', ?, ?, '', '', '', ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
+        p.title, slug, short, CATALOG_DESCRIPTIONS[slug] ?? "", catIds[p.cat], tags, CATALOG_IMAGES[slug] ? 1 : 0, `${p.title} | Naucera`, short
       )
     ).insertId;
 
-    const svg = Buffer.from(packArt({ title: p.title, subtitle: catName.replace(" Premixes", ""), color: p.color, accent: p.accent }));
-    const file = `${slug}.svg`;
-    const mid = (await d.run("INSERT INTO media (filename, mime, size, data) VALUES (?, 'image/svg+xml', ?, ?)", file, svg.length, svg)).insertId;
-    await d.run("INSERT INTO product_images (product_id, url, alt, position) VALUES (?, ?, ?, 0)", pid, `/uploads/${mid}/${file}`, p.title);
+    const photos = CATALOG_IMAGES[slug];
+    if (photos) {
+      for (const [i, url] of photos.entries()) await d.run("INSERT INTO product_images (product_id, url, alt, position) VALUES (?, ?, ?, ?)", pid, url, p.title, i);
+    } else {
+      const svg = Buffer.from(packArt({ title: p.title, subtitle: catName.replace(" Premixes", ""), color: p.color, accent: p.accent }));
+      const file = `${slug}.svg`;
+      const mid = (await d.run("INSERT INTO media (filename, mime, size, data) VALUES (?, 'image/svg+xml', ?, ?)", file, svg.length, svg)).insertId;
+      await d.run("INSERT INTO product_images (product_id, url, alt, position) VALUES (?, ?, ?, 0)", pid, `/uploads/${mid}/${file}`, p.title);
+    }
 
     const skuBase = "NC-" + slug.split("-").map((w) => w[0]).join("").toUpperCase();
     for (const [i, v] of p.variants.entries()) {
@@ -79,6 +123,45 @@ export async function insertCatalog(d: Db) {
         pid, v.name, `${skuBase}-${v.code}`, v.grams, i
       );
     }
+  }
+}
+
+/**
+ * Upgrade for databases loaded with catalogue v2: swap generated placeholder packs for the real
+ * naucera.in photos, fill empty descriptions, publish untouched drafts and fill empty contact settings.
+ * Anything already edited in the admin is left alone.
+ */
+export async function upgradeCatalogToV3(d: Db) {
+  for (const p of NAUCERA_PRODUCTS) {
+    const slug = slugOf(p.title);
+    const row = await d.get<{ id: number; status: string; description: string | null; changed: number }>(
+      "SELECT id, status, description, updated_at > created_at AS changed FROM products WHERE slug = ?", slug
+    );
+    if (!row) continue;
+    const photos = CATALOG_IMAGES[slug];
+    if (photos) {
+      const imgs = await d.all<{ url: string }>("SELECT url FROM product_images WHERE product_id = ?", row.id);
+      const onlyPlaceholder = imgs.length === 0 || imgs.every((i) => /^\/uploads\/\d+\/[a-z0-9-]+\.svg$/.test(i.url));
+      if (onlyPlaceholder) {
+        for (const i of imgs) {
+          const mid = Number(/^\/uploads\/(\d+)\//.exec(i.url)?.[1]);
+          if (mid) await d.run("DELETE FROM media WHERE id = ? AND mime = 'image/svg+xml'", mid);
+        }
+        await d.run("DELETE FROM product_images WHERE product_id = ?", row.id);
+        for (const [i, url] of photos.entries()) await d.run("INSERT INTO product_images (product_id, url, alt, position) VALUES (?, ?, ?, ?)", row.id, url, p.title, i);
+        await d.run("UPDATE products SET featured = 1 WHERE id = ? AND featured = 0", row.id);
+      }
+    }
+    if (!row.description && CATALOG_DESCRIPTIONS[slug]) await d.run("UPDATE products SET description = ? WHERE id = ?", CATALOG_DESCRIPTIONS[slug], row.id);
+    // v2 generated summaries like "Kadak Tea – tea premixe, available as …" – replace if never edited.
+    if (CATALOG_DESCRIPTIONS[slug]) {
+      await d.run("UPDATE products SET short_description = ? WHERE id = ? AND short_description LIKE '% premixe, available as %'", CATALOG_DESCRIPTIONS[slug], row.id);
+      await d.run("UPDATE products SET seo_description = ? WHERE id = ? AND seo_description LIKE '% premixe, available as %'", CATALOG_DESCRIPTIONS[slug], row.id);
+    }
+    if (row.status === "draft" && !Number(row.changed)) await d.run("UPDATE products SET status = 'active' WHERE id = ?", row.id);
+  }
+  for (const [k, v] of Object.entries(STORE_CONTACT_DEFAULTS)) {
+    await d.run("INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = IF(value IS NULL OR value = '', VALUES(value), value)", k, v);
   }
 }
 

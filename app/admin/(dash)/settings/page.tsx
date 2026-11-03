@@ -31,6 +31,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <Field name="tagline" label="Tagline" value={s.tagline} />
           <Field name="email" label="Contact email" type="email" value={s.email} />
           <Field name="phone" label="Contact phone" value={s.phone} />
+          <Field name="whatsapp" label="WhatsApp number" value={s.whatsapp} hint="With country code, digits only – e.g. 919127064580. Used for the “Enquire on WhatsApp” button." />
           <div className="sm:col-span-2">
             <label className="label" htmlFor="address">Business address</label>
             <textarea id="address" name="address" rows={3} defaultValue={s.address} className="input" />

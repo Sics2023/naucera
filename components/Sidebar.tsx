@@ -50,9 +50,9 @@ export default function Sidebar({ storeName, openOrders }: { storeName: string; 
           })}
         </nav>
         <div className="border-t border-white/10 p-3">
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/60">
-            <Store size={18} /> <span>Storefront <span className="text-[11px] text-gold">(coming next)</span></span>
-          </div>
+          <a href="/products" target="_blank" rel="noopener" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
+            <Store size={18} /> <span className="flex-1">View store</span><span className="text-xs text-gold">↗</span>
+          </a>
         </div>
       </aside>
     </>

@@ -1,5 +1,5 @@
 import type { Db } from "./db";
-import { CATALOG_VERSION, insertCatalog } from "./catalog";
+import { CATALOG_VERSION, insertCatalog, STORE_CONTACT_DEFAULTS } from "./catalog";
 
 /** Fills an empty database with the Naucera catalogue and default store settings. */
 export async function seed(d: Db) {
@@ -8,8 +8,7 @@ export async function seed(d: Db) {
     store_name: "Naucera",
     tagline: "Tea, Coffee & Cooler Premixes",
     email: "",
-    phone: "",
-    address: "",
+    ...STORE_CONTACT_DEFAULTS,
     gstin: "",
     currency: "INR",
     shipping_flat: "49",
