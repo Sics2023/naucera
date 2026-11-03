@@ -117,7 +117,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS customers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(191) NOT NULL,
-    email VARCHAR(191) NOT NULL UNIQUE,
+    email VARCHAR(191) NULL UNIQUE,
     phone VARCHAR(30) NOT NULL DEFAULT '',
     city VARCHAR(100) NOT NULL DEFAULT '',
     state VARCHAR(100) NOT NULL DEFAULT '',
@@ -218,6 +218,11 @@ async function ready() {
     globalThis.__naucera_ready = (async () => {
       const p = pool();
       for (const stmt of SCHEMA) await p.query(stmt);
+      // Customers added by hand (phone or walk-in orders) may not have an email.
+      const [col] = await p.query<RowDataPacket[]>(
+        "SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'email'"
+      );
+      if (col[0]?.IS_NULLABLE === "NO") await p.query("ALTER TABLE customers MODIFY email VARCHAR(191) NULL");
       const [rows] = await p.query<RowDataPacket[]>("SELECT COUNT(*) AS n FROM categories");
       if (Number(rows[0].n) === 0) await tx((d) => seed(d));
       await migrateCatalog();

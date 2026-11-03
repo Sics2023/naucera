@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { all } from "@/lib/db";
 import { inr, fmtDateTime } from "@/lib/format";
-import { Badge, Empty, PageHeader } from "@/components/ui";
-import { Search } from "lucide-react";
+import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
+import { Plus, Search } from "lucide-react";
 
 export const metadata = { title: "Orders" };
 
@@ -16,7 +16,7 @@ const TABS = [
   { label: "Cancelled", status: "cancelled" },
 ];
 
-export default async function Orders({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; payment?: string }> }) {
+export default async function Orders({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; payment?: string; deleted?: string }> }) {
   const sp = await searchParams;
   const where: string[] = [];
   const params: string[] = [];
@@ -34,7 +34,10 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
 
   return (
     <>
-      <PageHeader title="Orders" subtitle={`${orders.length} order${orders.length === 1 ? "" : "s"}`} />
+      <PageHeader title="Orders" subtitle={`${orders.length} order${orders.length === 1 ? "" : "s"}`}>
+        <Link href="/admin/orders/new" className="btn-primary"><Plus size={16} /> Create order</Link>
+      </PageHeader>
+      <Flash show={sp.deleted === "1"}>Order deleted.</Flash>
       <div className="card overflow-hidden">
         <div className="flex gap-1 overflow-x-auto border-b border-neutral-100 px-3 pt-2">
           {TABS.map((t) => (
@@ -53,7 +56,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
           </select>
           <button className="btn-secondary">Filter</button>
         </form>
-        {orders.length === 0 ? <Empty title="No orders found" /> : (
+        {orders.length === 0 ? <Empty title="No orders found">{!(sp.q || sp.status || sp.payment) && "Orders will appear here. Use “Create order” to add one taken by phone, WhatsApp or in person."}</Empty> : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-neutral-50/60"><tr><th className="th">Order</th><th className="th">Date</th><th className="th">Customer</th><th className="th">Payment</th><th className="th">Fulfilment</th><th className="th">Items</th><th className="th text-right">Total</th></tr></thead>

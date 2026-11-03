@@ -142,14 +142,14 @@ export default async function Dashboard() {
         <div className="card overflow-hidden lg:col-span-2">
           <div className="flex items-center justify-between px-5 pt-4 pb-2">
             <h2 className="font-semibold">Recent orders</h2>
-            <Link href="/admin/orders" className="text-sm text-brand-700 hover:underline">View all</Link>
+            <div className="flex gap-4"><Link href="/admin/orders/new" className="text-sm text-brand-700 hover:underline">+ Create order</Link><Link href="/admin/orders" className="text-sm text-brand-700 hover:underline">View all</Link></div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="border-y border-neutral-100 bg-neutral-50/60"><tr><th className="th">Order</th><th className="th">Customer</th><th className="th">Date</th><th className="th">Payment</th><th className="th">Status</th><th className="th text-right">Total</th></tr></thead>
               <tbody className="divide-y divide-neutral-100">
                 {recent.length === 0 && (
-                  <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-neutral-500">No orders yet. New orders from the store will show up here.</td></tr>
+                  <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-neutral-500">No orders yet. Use “+ Create order” to add one taken by phone, WhatsApp or in person.</td></tr>
                 )}
                 {recent.map((o) => (
                   <tr key={o.id} className="hover:bg-neutral-50">

@@ -4,15 +4,16 @@ import { all, get } from "@/lib/db";
 import type { Order } from "@/lib/queries";
 import { inr, fmtDateTime, ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/format";
 import { Badge, Flash, PageHeader, Thumb } from "@/components/ui";
-import { updateOrder } from "../../../actions";
+import { deleteOrder, updateOrder } from "../../../actions";
+import ConfirmButton from "@/components/ConfirmButton";
 import { Check } from "lucide-react";
 
-export default async function OrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string }> }) {
+export default async function OrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; created?: string }> }) {
   const id = Number((await params).id);
-  const { saved } = await searchParams;
+  const { saved, created } = await searchParams;
   const order = await get<Order>("SELECT * FROM orders WHERE id = ?", id);
   if (!order) notFound();
-  const customer = order.customer_id ? await get<{ id: number; name: string; email: string; phone: string }>("SELECT * FROM customers WHERE id = ?", order.customer_id) : undefined;
+  const customer = order.customer_id ? await get<{ id: number; name: string; email: string | null; phone: string }>("SELECT * FROM customers WHERE id = ?", order.customer_id) : undefined;
   const orderCount = customer ? (await get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE customer_id = ?", customer.id))!.n : 0;
   const items = await all<{ id: number; product_id: number | null; title: string; variant_name: string; price: number; qty: number; image: string | null; sku: string | null }>(
     `SELECT oi.*, v.sku, (SELECT url FROM product_images i WHERE i.product_id = oi.product_id ORDER BY position LIMIT 1) AS image
@@ -27,6 +28,7 @@ export default async function OrderDetail({ params, searchParams }: { params: Pr
         <Badge tone={order.payment_status} /><Badge tone={order.status} />
       </PageHeader>
       <Flash show={saved === "1"}>Order updated.</Flash>
+      <Flash show={created === "1"}>Order {order.number} created.</Flash>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
@@ -96,15 +98,22 @@ export default async function OrderDetail({ params, searchParams }: { params: Pr
             <h2 className="font-semibold">Customer</h2>
             {customer ? (
               <div className="mt-2 space-y-0.5">
-                <Link href={`/admin/customers?q=${encodeURIComponent(customer.email)}`} className="font-medium text-brand-700 hover:underline">{customer.name}</Link>
+                <Link href={`/admin/customers?q=${encodeURIComponent(customer.phone || customer.email || customer.name)}`} className="font-medium text-brand-700 hover:underline">{customer.name}</Link>
                 <div className="text-neutral-500">{orderCount} order{orderCount === 1 ? "" : "s"}</div>
-                <div className="pt-2">{customer.email}</div>
+                {customer.email && <div className="pt-2">{customer.email}</div>}
                 <div>{customer.phone}</div>
               </div>
             ) : <p className="mt-2 text-neutral-500">Guest checkout</p>}
             <h3 className="mt-4 font-semibold">Shipping address</h3>
-            <p className="mt-1 whitespace-pre-line text-neutral-700">{order.shipping_address}</p>
+            <p className="mt-1 whitespace-pre-line text-neutral-700">{order.shipping_address || <span className="text-neutral-500">Not given</span>}</p>
           </div>
+          <form action={deleteOrder} className="card space-y-3 p-5 text-sm">
+            <input type="hidden" name="id" value={order.id} />
+            <h2 className="font-semibold">Delete order</h2>
+            <p className="text-neutral-500">For orders added by mistake. To keep a record, set the status to Cancelled instead.</p>
+            <label className="flex items-center gap-2"><input type="checkbox" name="restock" className="size-4 accent-brand-700" /> Put the items back in stock</label>
+            <ConfirmButton message={`Delete order ${order.number}? This can’t be undone.`}>Delete order</ConfirmButton>
+          </form>
         </div>
       </div>
     </>

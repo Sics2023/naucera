@@ -12,3 +12,4 @@ export const slugify = (s: string) =>
 
 export const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"] as const;
 export const PAYMENT_STATUSES = ["pending", "paid", "refunded"] as const;
+export const PAYMENT_METHODS = ["Cash", "UPI", "Bank transfer", "Cash on delivery", "Card", "Credit (pay later)"] as const;

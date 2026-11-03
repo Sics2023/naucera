@@ -8,7 +8,7 @@ export const metadata = { title: "Customers" };
 
 export default async function Customers({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
-  const rows = await all<{ id: number; name: string; email: string; phone: string; city: string; state: string; created_at: string; orders: number; spent: number; last: string | null }>(
+  const rows = await all<{ id: number; name: string; email: string | null; phone: string; city: string; state: string; created_at: string; orders: number; spent: number; last: string | null }>(
     `SELECT c.*,
        (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS orders,
        (SELECT COALESCE(SUM(o.total),0) FROM orders o WHERE o.customer_id = c.id AND o.status != 'cancelled') AS spent,
@@ -36,10 +36,10 @@ export default async function Customers({ searchParams }: { searchParams: Promis
               <tbody className="divide-y divide-neutral-100">
                 {rows.map((c) => (
                   <tr key={c.id} className="hover:bg-neutral-50">
-                    <td className="td"><div className="font-medium">{c.name}</div><div className="text-xs text-neutral-500">{c.email}</div></td>
+                    <td className="td"><div className="font-medium">{c.name}</div><div className="text-xs text-neutral-500">{c.email || c.phone}</div></td>
                     <td className="td whitespace-nowrap text-neutral-600">{c.phone}</td>
                     <td className="td text-neutral-600">{c.city}, {c.state}</td>
-                    <td className="td"><Link href={`/admin/orders?q=${encodeURIComponent(c.email)}`} className="text-brand-700 hover:underline">{c.orders}</Link></td>
+                    <td className="td"><Link href={`/admin/orders?q=${encodeURIComponent(c.phone || c.email || c.name)}`} className="text-brand-700 hover:underline">{c.orders}</Link></td>
                     <td className="td whitespace-nowrap text-neutral-500">{c.last ? fmtDate(c.last) : "—"}</td>
                     <td className="td text-right font-medium">{inr(c.spent)}</td>
                   </tr>
