@@ -206,16 +206,31 @@ export default async function ProductPage({ params }: { params: Params }) {
       </section>
 
       {/* The perfect moment */}
-      <section className="relative isolate flex min-h-[80svh] items-end overflow-hidden text-white">
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img data-parallax="0.15" src={cold ? "/story/banner-range-2.webp" : profile.moment.image === "/story/office-vending.webp" ? "/vending/bakery.webp" : "/story/office-vending.webp"} alt="" className="h-full w-full scale-[1.15] object-cover will-change-transform" />
-        </div>
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        <div className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 sm:pb-24">
-          <Eyebrow tone="text-gold">The perfect moment</Eyebrow>
-          <SplitText text={profile.moment.title} className="mt-4 max-w-3xl font-serif text-4xl leading-tight font-semibold sm:text-6xl" />
-          <p data-reveal="" className="mt-5 max-w-xl text-lg text-white/85">{profile.moment.text}</p>
+      <section className="relative isolate overflow-hidden" style={{ background: theme.tint }}>
+        <div className="absolute inset-0 -z-10" style={{ background: "radial-gradient(60% 70% at 15% 30%, rgba(255,255,255,0.75) 0%, transparent 70%)" }} />
+        <Sprig className="absolute top-10 -left-8 -z-10 hidden h-80 text-brand-700/20 lg:block" />
+        <Sprig flip className="absolute -right-8 bottom-0 -z-10 hidden h-80 text-brand-700/20 lg:block" />
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-24 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:py-28">
+          <div>
+            <Eyebrow>The perfect moment</Eyebrow>
+            <SplitText text={profile.moment.title} className="mt-4 font-serif text-4xl leading-tight font-semibold text-forest sm:text-6xl" />
+            <p data-reveal="" className="mt-6 max-w-lg text-lg leading-relaxed text-neutral-700">{profile.moment.text}</p>
+            <div data-reveal="" className="mt-10 flex items-end gap-5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={cold ? "/mascot/mascot-peace.webp" : "/mascot/mascot-cup-chin.webp"} alt="Naucera mascot" className="float-slow h-40 w-auto drop-shadow-xl sm:h-48" />
+              <p className="mb-4 max-w-[14rem] rounded-2xl rounded-bl-none bg-white px-4 py-3 font-serif text-forest italic shadow-[0_15px_40px_-20px_rgba(22,58,43,0.5)]">“{profile.tagline}”</p>
+            </div>
+          </div>
+          <div className="relative">
+            <div data-reveal="clip" className="overflow-hidden rounded-[3rem] rounded-tr-[6rem] shadow-[0_40px_80px_-40px_rgba(22,58,43,0.55)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={cold ? "/story/banner-range-2.webp" : profile.moment.image === "/story/office-vending.webp" ? "/vending/bakery.webp" : "/story/office-vending.webp"} alt="" loading="lazy" className="aspect-[5/4] w-full object-cover" />
+            </div>
+            {p.images[0] && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img data-reveal="scale" style={d(400)} src={p.images[0].url} alt="" loading="lazy" className="absolute -bottom-10 -left-6 h-40 w-auto drop-shadow-[0_25px_25px_rgba(0,0,0,0.3)] sm:-left-10 sm:h-52" />
+            )}
+          </div>
         </div>
       </section>
 

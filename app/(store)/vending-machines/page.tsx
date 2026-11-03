@@ -306,27 +306,30 @@ export default async function VendingPage() {
       </section>
 
       {/* Backed by */}
-      <section className="relative isolate overflow-hidden text-white">
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img data-parallax="0.15" src="/story/vending-range.webp" alt="" className="h-full w-full scale-[1.15] object-cover will-change-transform" />
-        </div>
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
-        <div className="mx-auto max-w-7xl px-4 py-28 sm:px-6 lg:py-36">
-          <Eyebrow tone="text-gold">East India&apos;s Leading Instant Beverages Brand</Eyebrow>
-          <SplitText text="Backed by Assam & the Northeast's Most Established Instant Beverage Manufacturer" className="mt-4 max-w-3xl font-serif text-4xl leading-tight font-semibold sm:text-5xl" />
-          <p data-reveal="" className="mt-4 text-white/75">Naucera by Vardhman Foods and Beverages</p>
-          <div className="mt-10 grid max-w-3xl gap-5 sm:grid-cols-2">
-            {[
-              { icon: ShieldCheck, t: "Certified & Quality-Controlled", b: "Full production traceability with expiry-labelled, batch-tracked SKUs across every range." },
-              { icon: MapPinned, t: "PAN India Network", b: "Ready to serve institutional, HORECA, and retail buyers anywhere in India." },
-            ].map((x, i) => (
-              <div key={x.t} data-reveal="" style={d(i * 120)} className="rounded-3xl border border-white/15 bg-white/10 p-6 backdrop-blur">
-                <x.icon className="text-gold" size={24} />
-                <p className="mt-3 font-serif text-xl font-semibold">{x.t}</p>
-                <p className="mt-1 text-sm text-white/75">{x.b}</p>
-              </div>
-            ))}
+      <section className="relative overflow-hidden bg-forest text-white">
+        <div className="pointer-events-none absolute -top-40 -left-40 size-[32rem] rounded-full bg-brand-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-32 -bottom-32 size-96 rounded-full bg-gold/10 blur-3xl" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 py-24 sm:px-6 lg:grid-cols-2 lg:py-28">
+          <div>
+            <Eyebrow tone="text-gold">East India&apos;s Leading Instant Beverages Brand</Eyebrow>
+            <SplitText text="Backed by Assam & the Northeast's Most Established Instant Beverage Manufacturer" className="mt-4 font-serif text-4xl leading-tight font-semibold sm:text-5xl" />
+            <p data-reveal="" className="mt-4 text-white/75">Naucera by Vardhman Foods and Beverages</p>
+            <div className="mt-10 grid gap-5 sm:grid-cols-2">
+              {[
+                { icon: ShieldCheck, t: "Certified & Quality-Controlled", b: "Full production traceability with expiry-labelled, batch-tracked SKUs across every range." },
+                { icon: MapPinned, t: "PAN India Network", b: "Ready to serve institutional, HORECA, and retail buyers anywhere in India." },
+              ].map((x, i) => (
+                <div key={x.t} data-reveal="" style={d(i * 120)} className="rounded-3xl border border-white/10 bg-white/[0.06] p-6">
+                  <x.icon className="text-gold" size={24} />
+                  <p className="mt-3 font-serif text-xl font-semibold">{x.t}</p>
+                  <p className="mt-1 text-sm text-white/75">{x.b}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div data-reveal="clip" className="overflow-hidden rounded-[3rem] rounded-tl-[6rem] shadow-2xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/story/vending-range.webp" alt="Naucera vending machine with tea and coffee premix packs" loading="lazy" className="aspect-[4/5] w-full object-cover" />
           </div>
         </div>
       </section>

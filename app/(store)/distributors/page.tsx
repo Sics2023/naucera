@@ -49,10 +49,6 @@ export default function DistributorsPage() {
         title="Become Our Distributor"
         image="/story/banner-range-2.webp"
         text="Partner with East India’s leading instant beverages brand – strength in every sip, soul in every cup."
-        aside={
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src="/mascot/mascot-thumbsup.webp" alt="Naucera mascot" className="float-slow h-[24rem] w-auto drop-shadow-[0_30px_40px_rgba(0,0,0,0.35)]" />
-        }
       >
         <a href="#enquire" className="inline-flex items-center gap-2 rounded-full bg-gold px-7 py-3.5 font-semibold text-ink transition hover:-translate-y-0.5 hover:bg-white">
           Enquire now <ArrowDown size={18} />
@@ -158,8 +154,6 @@ export default function DistributorsPage() {
               <p className="text-sm font-semibold tracking-[0.2em] text-gold uppercase">Naucera · Vardhman Foods and Beverages</p>
               <p className="mt-3 flex gap-3 text-white/75"><MapPin size={20} className="mt-0.5 shrink-0 text-gold" />House No 03, Ground Floor, Shree Niwas House, By Lane Number 03, AK Azad Rd, Sarabbhati, Rehabari, Guwahati, Assam 781008</p>
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img data-reveal="scale" src="/mascot/mascot-support.webp" alt="" className="float-slow mt-10 hidden h-64 w-auto lg:block" />
           </div>
           <div data-reveal="" className="flex flex-col justify-center rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-forest to-night p-6 shadow-2xl sm:p-10">
             <DistributorForm />

@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { ArrowRight, ArrowUpRight, MessageCircle } from "lucide-react";
 import { getSettings } from "@/lib/queries";
-import { whatsappLink } from "@/lib/store";
-import { CountUp, Marquee, SplitText } from "@/components/store/Motion";
+import { listStoreProducts, whatsappLink } from "@/lib/store";
+import { CountUp, SplitText } from "@/components/store/Motion";
+import PackCarousel from "@/components/store/PackCarousel";
 import PageHero from "@/components/store/PageHero";
 import { Eyebrow, Sprig } from "@/components/store/Decor";
 
@@ -65,12 +66,11 @@ const VALUES = [
 
 const SYSTEMS = ["Production Management", "Flow Chart Management", "Inventory Management", "Checklist & Delegation Sheet"];
 
-const PACKS = ["select-tea", "kadak-tea", "cardamom-tea-gold", "lemon-tea", "select-coffee", "kadak-coffee", "coffee-gold", "moh-maya", "jalwa-lemonade", "cold-coffee", "lemon-iced-tea", "aam-panna"];
-
 const d = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
 
 export default async function AboutPage() {
-  const settings = await getSettings();
+  const [settings, products] = await Promise.all([getSettings(), listStoreProducts()]);
+  const packs = products.filter((p) => p.image).map((p) => ({ title: p.title, slug: p.slug, image: p.image! }));
   const talk = whatsappLink(settings.whatsapp, "Hi Naucera team, I'd like to talk about your premixes and vending machines.") ?? "#contact";
 
   return (
@@ -139,13 +139,14 @@ export default async function AboutPage() {
         </p>
       </section>
 
-      {/* Pack strip */}
-      <Marquee speed={55} className="border-y border-neutral-200 bg-neutral-50 py-8">
-        {PACKS.map((s) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={s} src={`/products/${s}.webp`} alt="" loading="lazy" className="mx-6 h-36 w-auto object-contain drop-shadow-xl transition duration-500 hover:-translate-y-2 sm:h-44" />
-        ))}
-      </Marquee>
+      {/* Pack carousel */}
+      <section className="relative overflow-hidden bg-cream py-20 sm:py-24">
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 mx-auto h-72 max-w-4xl -translate-y-1/2 rounded-full bg-white/70 blur-3xl" />
+        <div className="relative mx-auto mb-6 max-w-7xl px-4 text-center sm:px-6">
+          <div className="flex justify-center"><Eyebrow>The Naucera range</Eyebrow></div>
+        </div>
+        <div className="relative"><PackCarousel packs={packs} /></div>
+      </section>
 
       {/* What We Manufacture */}
       <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:py-32">
@@ -161,12 +162,12 @@ export default async function AboutPage() {
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {RANGE.map((r, i) => (
             <article key={r.t} data-reveal="" style={d((i % 3) * 110)}
-              className="group relative flex flex-col overflow-hidden rounded-[2rem] p-7 transition duration-500 hover:-translate-y-1.5 hover:shadow-2xl" >
+              className="group relative isolate flex flex-col overflow-hidden rounded-[2rem] rounded-tr-[4rem] p-7 transition duration-500 hover:-translate-y-1.5 hover:shadow-2xl">
               <div className="absolute inset-0 -z-10 transition duration-500 group-hover:scale-105" style={{ background: r.tint }} />
-              <div className="relative grid h-56 place-items-center">
-                <div className="absolute bottom-3 h-6 w-2/3 rounded-[50%] bg-black/10 blur-md" />
+              <div className="relative flex h-56 items-end justify-center">
+                <div className="absolute bottom-1 left-1/2 h-6 w-2/3 -translate-x-1/2 rounded-[50%] bg-black/10 blur-md" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.img} alt="" loading="lazy" className="relative h-full w-auto object-contain transition duration-700 group-hover:-translate-y-2 group-hover:rotate-[-3deg] group-hover:scale-105" />
+                <img src={r.img} alt="" loading="lazy" className="relative h-52 w-auto max-w-full object-contain drop-shadow-xl transition duration-700 group-hover:-translate-y-2 group-hover:rotate-[-3deg] group-hover:scale-105" />
               </div>
               <h3 className="mt-6 font-serif text-2xl font-semibold">{r.t}</h3>
               <p className="mt-2 text-sm leading-relaxed text-neutral-700">{r.b.charAt(0).toUpperCase() + r.b.slice(1)}</p>
