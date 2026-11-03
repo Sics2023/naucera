@@ -1,0 +1,37 @@
+import { notFound } from "next/navigation";
+import { all } from "@/lib/db";
+import { getProduct, listCategories } from "@/lib/queries";
+import { inr } from "@/lib/format";
+import { Badge, Flash, PageHeader } from "@/components/ui";
+import ProductForm from "@/components/ProductForm";
+import { deleteProduct, duplicateProduct } from "../../../actions";
+import { Copy } from "lucide-react";
+import ConfirmButton from "@/components/ConfirmButton";
+
+export default async function EditProduct({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string }> }) {
+  const { id } = await params;
+  const { saved } = await searchParams;
+  const data = getProduct(Number(id));
+  if (!data) notFound();
+  const sales = all<{ units: number; revenue: number }>(
+    `SELECT COALESCE(SUM(oi.qty),0) AS units, COALESCE(SUM(oi.qty*oi.price),0) AS revenue FROM order_items oi
+     JOIN orders o ON o.id = oi.order_id WHERE oi.product_id = ? AND o.status != 'cancelled'`, Number(id)
+  )[0];
+
+  return (
+    <>
+      <PageHeader title={data.product.title} subtitle={`${sales.units} units sold · ${inr(Math.round(sales.revenue))} lifetime sales`} back={{ href: "/admin/products", label: "Products" }}>
+        <Badge tone={data.product.status} />
+        <form action={duplicateProduct}><input type="hidden" name="id" value={id} /><button className="btn-secondary"><Copy size={15} /> Duplicate</button></form>
+        <form action={deleteProduct}><input type="hidden" name="id" value={id} /><ConfirmButton message="Delete this product permanently? Past orders keep their line items.">Delete</ConfirmButton></form>
+      </PageHeader>
+      <Flash show={saved === "1"}>Product saved.</Flash>
+      <ProductForm key={data.product.updated_at} categories={listCategories()} {...data} />
+    </>
+  );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const data = getProduct(Number((await params).id));
+  return { title: data?.product.title ?? "Product" };
+}
