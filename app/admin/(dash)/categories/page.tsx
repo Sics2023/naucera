@@ -19,12 +19,12 @@ export default async function Categories({ searchParams }: { searchParams: Promi
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="card overflow-hidden lg:col-span-2">
           <table className="w-full">
-            <thead className="bg-stone-50/60"><tr><th className="th">Name</th><th className="th">Handle</th><th className="th">Products</th><th className="th" /></tr></thead>
-            <tbody className="divide-y divide-stone-100">
+            <thead className="bg-neutral-50/60"><tr><th className="th">Name</th><th className="th">Handle</th><th className="th">Products</th><th className="th" /></tr></thead>
+            <tbody className="divide-y divide-neutral-100">
               {cats.map((c) => (
-                <tr key={c.id} className={editing?.id === c.id ? "bg-brand-50" : "hover:bg-stone-50"}>
-                  <td className="td"><div className="font-medium">{c.name}</div><div className="text-xs text-stone-500">{c.description}</div></td>
-                  <td className="td font-mono text-xs text-stone-600">/{c.slug}</td>
+                <tr key={c.id} className={editing?.id === c.id ? "bg-brand-50" : "hover:bg-neutral-50"}>
+                  <td className="td"><div className="font-medium">{c.name}</div><div className="text-xs text-neutral-500">{c.description}</div></td>
+                  <td className="td font-mono text-xs text-neutral-600">/{c.slug}</td>
                   <td className="td"><Link href={`/admin/products?category=${c.id}`} className="text-brand-700 hover:underline">{c.product_count}</Link></td>
                   <td className="td">
                     <div className="flex justify-end gap-2">

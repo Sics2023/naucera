@@ -81,12 +81,12 @@ export default async function Dashboard() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpis.map((k) => (
           <div key={k.label} className="card p-4">
-            <div className="text-xs font-medium text-stone-500">{k.label}</div>
+            <div className="text-xs font-medium text-neutral-500">{k.label}</div>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-2xl font-semibold tracking-tight">{k.value}</span>
               <Delta now={k.now} prev={k.prev} />
             </div>
-            <div className="mt-0.5 text-[11px] text-stone-400">vs previous 30 days</div>
+            <div className="mt-0.5 text-[11px] text-neutral-400">vs previous 30 days</div>
           </div>
         ))}
       </div>
@@ -95,7 +95,7 @@ export default async function Dashboard() {
         <div className="card p-5 lg:col-span-2">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="font-semibold">Daily revenue</h2>
-            <span className="text-xs text-stone-500">Last 30 days · excludes cancelled</span>
+            <span className="text-xs text-neutral-500">Last 30 days · excludes cancelled</span>
           </div>
           <RevenueChart data={series} />
         </div>
@@ -108,12 +108,12 @@ export default async function Dashboard() {
               </Link>
             </li>
             <li>
-              <Link href="/admin/inventory?filter=low" className="flex items-center justify-between rounded-lg bg-stone-50 px-3 py-2.5 hover:bg-stone-100">
+              <Link href="/admin/inventory?filter=low" className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2.5 hover:bg-neutral-100">
                 <span><b>{low.length}</b> variants low on stock</span><span>→</span>
               </Link>
             </li>
             <li>
-              <Link href="/admin/products?status=active" className="flex items-center justify-between rounded-lg bg-stone-50 px-3 py-2.5 hover:bg-stone-100">
+              <Link href="/admin/products?status=active" className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2.5 hover:bg-neutral-100">
                 <span><b>{activeProducts}</b> product{activeProducts === 1 ? "" : "s"} live</span><span>→</span>
               </Link>
             </li>
@@ -126,11 +126,11 @@ export default async function Dashboard() {
             )}
           </ul>
           <h3 className="mt-5 flex items-center gap-1.5 text-sm font-semibold"><AlertTriangle size={15} className="text-amber-600" /> Low stock</h3>
-          <ul className="mt-2 divide-y divide-stone-100 text-sm">
-            {low.length === 0 && <li className="py-2 text-stone-500">All stocked up 🎉</li>}
+          <ul className="mt-2 divide-y divide-neutral-100 text-sm">
+            {low.length === 0 && <li className="py-2 text-neutral-500">All stocked up 🎉</li>}
             {low.map((v) => (
               <li key={v.product_id + v.name} className="flex items-center justify-between gap-2 py-2">
-                <Link href={`/admin/products/${v.product_id}`} className="truncate hover:underline">{v.title} <span className="text-stone-500">· {v.name}</span></Link>
+                <Link href={`/admin/products/${v.product_id}`} className="truncate hover:underline">{v.title} <span className="text-neutral-500">· {v.name}</span></Link>
                 <Badge tone={v.stock === 0 ? "out" : "low"}>{v.stock === 0 ? "Out" : `${v.stock} left`}</Badge>
               </li>
             ))}
@@ -146,16 +146,16 @@ export default async function Dashboard() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-y border-stone-100 bg-stone-50/60"><tr><th className="th">Order</th><th className="th">Customer</th><th className="th">Date</th><th className="th">Payment</th><th className="th">Status</th><th className="th text-right">Total</th></tr></thead>
-              <tbody className="divide-y divide-stone-100">
+              <thead className="border-y border-neutral-100 bg-neutral-50/60"><tr><th className="th">Order</th><th className="th">Customer</th><th className="th">Date</th><th className="th">Payment</th><th className="th">Status</th><th className="th text-right">Total</th></tr></thead>
+              <tbody className="divide-y divide-neutral-100">
                 {recent.length === 0 && (
-                  <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-stone-500">No orders yet. New orders from the store will show up here.</td></tr>
+                  <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-neutral-500">No orders yet. New orders from the store will show up here.</td></tr>
                 )}
                 {recent.map((o) => (
-                  <tr key={o.id} className="hover:bg-stone-50">
+                  <tr key={o.id} className="hover:bg-neutral-50">
                     <td className="td font-medium"><Link href={`/admin/orders/${o.id}`} className="hover:underline">{o.number}</Link></td>
                     <td className="td whitespace-nowrap">{o.customer ?? "Guest"}</td>
-                    <td className="td whitespace-nowrap text-stone-500">{fmtDateTime(o.created_at)}</td>
+                    <td className="td whitespace-nowrap text-neutral-500">{fmtDateTime(o.created_at)}</td>
                     <td className="td"><Badge tone={o.payment_status} /></td>
                     <td className="td"><Badge tone={o.status} /></td>
                     <td className="td text-right font-medium">{inr(o.total)}</td>
@@ -168,14 +168,14 @@ export default async function Dashboard() {
         <div className="card p-5">
           <h2 className="font-semibold">Top products · 30 days</h2>
           <ul className="mt-3 space-y-3">
-            {top.length === 0 && <li className="py-6 text-center text-sm text-stone-500">Best sellers will appear here after your first sales.</li>}
+            {top.length === 0 && <li className="py-6 text-center text-sm text-neutral-500">Best sellers will appear here after your first sales.</li>}
             {top.map((p, i) => (
               <li key={p.id} className="flex items-center gap-3">
-                <span className="w-4 text-xs text-stone-400">{i + 1}</span>
+                <span className="w-4 text-xs text-neutral-400">{i + 1}</span>
                 <Thumb src={p.image} alt={p.title} size={36} />
                 <div className="min-w-0 flex-1">
                   <Link href={`/admin/products/${p.id}`} className="block truncate text-sm font-medium hover:underline">{p.title}</Link>
-                  <div className="text-xs text-stone-500">{p.units} units sold</div>
+                  <div className="text-xs text-neutral-500">{p.units} units sold</div>
                 </div>
                 <div className="text-sm font-medium">{inr(Math.round(p.revenue))}</div>
               </li>

@@ -16,7 +16,7 @@ function Section({ title, children, desc }: { title: string; desc?: string; chil
   return (
     <section className="card p-5">
       <h2 className="font-semibold">{title}</h2>
-      {desc && <p className="mt-0.5 text-sm text-stone-500">{desc}</p>}
+      {desc && <p className="mt-0.5 text-sm text-neutral-500">{desc}</p>}
       <div className="mt-4 space-y-4">{children}</div>
     </section>
   );
@@ -104,13 +104,13 @@ export default function ProductForm({ categories, product, variants: initialVari
               onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
               onDragLeave={() => setDrag(false)}
               onDrop={(e) => { e.preventDefault(); setDrag(false); upload(e.dataTransfer.files); }}
-              className={`grid grid-cols-3 gap-3 rounded-xl border-2 border-dashed p-3 sm:grid-cols-4 ${drag ? "border-brand-500 bg-brand-50" : "border-stone-200"}`}
+              className={`grid grid-cols-3 gap-3 rounded-xl border-2 border-dashed p-3 sm:grid-cols-4 ${drag ? "border-brand-500 bg-brand-50" : "border-neutral-200"}`}
             >
               {images.map((img, i) => (
-                <div key={img.url + i} className={`group relative aspect-square overflow-hidden rounded-lg border bg-stone-50 ${i === 0 ? "col-span-2 row-span-2 border-brand-300" : "border-stone-200"}`}>
+                <div key={img.url + i} className={`group relative aspect-square overflow-hidden rounded-lg border bg-neutral-50 ${i === 0 ? "col-span-2 row-span-2 border-brand-300" : "border-neutral-200"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img.url} alt={img.alt} className="h-full w-full object-cover" />
-                  {i === 0 && <span className="absolute top-2 left-2 rounded bg-brand-900/80 px-1.5 py-0.5 text-[11px] text-white">Cover</span>}
+                  {i === 0 && <span className="absolute top-2 left-2 rounded bg-ink/80 px-1.5 py-0.5 text-[11px] text-white">Cover</span>}
                   <div className="absolute inset-x-0 bottom-0 flex justify-between bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
                     <div className="flex gap-1">
                       <button type="button" onClick={() => move(i, -1)} className="rounded bg-white/90 p-1" aria-label="Move left"><ArrowLeft size={14} /></button>
@@ -121,9 +121,9 @@ export default function ProductForm({ categories, product, variants: initialVari
                 </div>
               ))}
               <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-lg bg-stone-50 text-center text-xs text-stone-500 hover:bg-stone-100 ${images.length === 0 ? "col-span-3 aspect-auto py-10 sm:col-span-4" : ""}`}>
+                className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-lg bg-neutral-50 text-center text-xs text-neutral-500 hover:bg-neutral-100 ${images.length === 0 ? "col-span-3 aspect-auto py-10 sm:col-span-4" : ""}`}>
                 {uploading ? <Loader2 className="animate-spin" size={22} /> : <ImagePlus size={22} />}
-                <span className="font-medium text-stone-700">{uploading ? "Uploading…" : "Add images"}</span>
+                <span className="font-medium text-neutral-700">{uploading ? "Uploading…" : "Add images"}</span>
                 {images.length === 0 && <span>or drag &amp; drop · JPG, PNG, WebP up to 8 MB</span>}
               </button>
             </div>
@@ -134,10 +134,10 @@ export default function ProductForm({ categories, product, variants: initialVari
           <Section title="Variants & pricing" desc="Pack sizes with their own price, SKU and stock.">
             <div className="-mx-5 overflow-x-auto">
               <table className="w-full min-w-[640px]">
-                <thead><tr className="border-y border-stone-100 bg-stone-50/60">
+                <thead><tr className="border-y border-neutral-100 bg-neutral-50/60">
                   <th className="th pl-5">Pack size</th><th className="th">SKU</th><th className="th">Price ₹</th><th className="th">Compare-at ₹</th><th className="th">Stock</th><th className="th">Weight g</th><th className="th" />
                 </tr></thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="divide-y divide-neutral-100">
                   {variants.map((v) => (
                     <tr key={v.key}>
                       <td className="py-2 pr-2 pl-5"><input className="input" value={v.name} onChange={(e) => setV(v.key, "name", e.target.value)} placeholder="500 g" aria-label="Pack size" /></td>
@@ -147,7 +147,7 @@ export default function ProductForm({ categories, product, variants: initialVari
                       <td className="p-2"><input className="input w-20" type="number" min="0" step="1" value={v.stock} onChange={(e) => setV(v.key, "stock", e.target.value)} aria-label="Stock" /></td>
                       <td className="p-2"><input className="input w-20" type="number" min="0" step="1" value={v.weight_grams} onChange={(e) => setV(v.key, "weight_grams", e.target.value)} aria-label="Weight in grams" /></td>
                       <td className="p-2 pr-5">
-                        <button type="button" onClick={() => setVariants((vs) => vs.filter((x) => x.key !== v.key))} disabled={variants.length === 1} className="rounded p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-700 disabled:opacity-30" aria-label="Remove variant"><Trash2 size={16} /></button>
+                        <button type="button" onClick={() => setVariants((vs) => vs.filter((x) => x.key !== v.key))} disabled={variants.length === 1} className="rounded p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-700 disabled:opacity-30" aria-label="Remove variant"><Trash2 size={16} /></button>
                       </td>
                     </tr>
                   ))}
@@ -156,9 +156,9 @@ export default function ProductForm({ categories, product, variants: initialVari
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" className="btn-secondary" onClick={() => setVariants((vs) => [...vs, blank()])}><Plus size={15} /> Add variant</button>
-              <span className="text-xs text-stone-500">Quick add:</span>
+              <span className="text-xs text-neutral-500">Quick add:</span>
               {[["100 g", "100"], ["250 g", "250"], ["500 g", "500"], ["1 kg", "1000"], ["5 kg", "5000"]].map(([n, g]) => (
-                <button key={n} type="button" className="rounded-full border border-stone-200 px-2.5 py-1 text-xs hover:bg-stone-50" onClick={() => setVariants((vs) => [...vs, blank(n, g)])}>{n}</button>
+                <button key={n} type="button" className="rounded-full border border-neutral-200 px-2.5 py-1 text-xs hover:bg-neutral-50" onClick={() => setVariants((vs) => [...vs, blank(n, g)])}>{n}</button>
               ))}
             </div>
           </Section>
@@ -179,10 +179,10 @@ export default function ProductForm({ categories, product, variants: initialVari
           </Section>
 
           <Section title="Search engine listing" desc="How this product appears on Google.">
-            <div className="rounded-lg bg-stone-50 p-3">
+            <div className="rounded-lg bg-neutral-50 p-3">
               <div className="text-xs text-emerald-800">naucera.in › products › {product?.slug ?? "…"}</div>
               <div className="truncate text-lg text-blue-800">{seoTitle || (title ? `${title} | Naucera` : "Product title | Naucera")}</div>
-              <div className="line-clamp-2 text-sm text-stone-600">{seoDesc || "Add a meta description to improve how this page shows in search results."}</div>
+              <div className="line-clamp-2 text-sm text-neutral-600">{seoDesc || "Add a meta description to improve how this page shows in search results."}</div>
             </div>
             <div>
               <label className="label" htmlFor="seo_title">Page title</label>
@@ -230,9 +230,9 @@ export default function ProductForm({ categories, product, variants: initialVari
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-stone-200 bg-white/95 backdrop-blur lg:left-60">
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-neutral-200 bg-white/95 backdrop-blur lg:left-60">
         <div className="mx-auto flex max-w-7xl items-center justify-end gap-3 px-4 py-3 lg:px-8">
-          <span className="mr-auto hidden text-sm text-stone-500 sm:block">{product ? "Editing product" : "New product"}</span>
+          <span className="mr-auto hidden text-sm text-neutral-500 sm:block">{product ? "Editing product" : "New product"}</span>
           <a href="/admin/products" className="btn-secondary">Cancel</a>
           <button className="btn-primary min-w-28" disabled={pending || uploading}>{pending ? <><Loader2 size={15} className="animate-spin" /> Saving…</> : "Save product"}</button>
         </div>

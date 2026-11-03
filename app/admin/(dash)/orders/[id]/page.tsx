@@ -36,10 +36,10 @@ export default async function OrderDetail({ params, searchParams }: { params: Pr
                 {steps.map((s, i) => (
                   <li key={s} className="flex flex-1 items-center last:flex-none">
                     <div className="flex flex-col items-center gap-1">
-                      <span className={`grid size-7 place-items-center rounded-full text-xs font-semibold ${i <= stepIdx ? "bg-brand-700 text-white" : "bg-stone-100 text-stone-400"}`}>{i < stepIdx ? <Check size={14} /> : i + 1}</span>
-                      <span className={`text-xs capitalize ${i <= stepIdx ? "font-medium text-stone-800" : "text-stone-400"}`}>{s}</span>
+                      <span className={`grid size-7 place-items-center rounded-full text-xs font-semibold ${i <= stepIdx ? "bg-brand-700 text-white" : "bg-neutral-100 text-neutral-400"}`}>{i < stepIdx ? <Check size={14} /> : i + 1}</span>
+                      <span className={`text-xs capitalize ${i <= stepIdx ? "font-medium text-neutral-800" : "text-neutral-400"}`}>{s}</span>
                     </div>
-                    {i < steps.length - 1 && <div className={`mx-2 mb-5 h-0.5 flex-1 ${i < stepIdx ? "bg-brand-700" : "bg-stone-200"}`} />}
+                    {i < steps.length - 1 && <div className={`mx-2 mb-5 h-0.5 flex-1 ${i < stepIdx ? "bg-brand-700" : "bg-neutral-200"}`} />}
                   </li>
                 ))}
               </ol>
@@ -47,25 +47,25 @@ export default async function OrderDetail({ params, searchParams }: { params: Pr
           )}
           <div className="card overflow-hidden">
             <h2 className="px-5 pt-4 pb-2 font-semibold">Items</h2>
-            <ul className="divide-y divide-stone-100 border-t border-stone-100">
+            <ul className="divide-y divide-neutral-100 border-t border-neutral-100">
               {items.map((it) => (
                 <li key={it.id} className="flex items-center gap-3 px-5 py-3">
                   <Thumb src={it.image} alt={it.title} size={44} />
                   <div className="min-w-0 flex-1">
                     {it.product_id ? <Link href={`/admin/products/${it.product_id}`} className="font-medium hover:underline">{it.title}</Link> : <span className="font-medium">{it.title}</span>}
-                    <div className="text-xs text-stone-500">{it.variant_name}{it.sku ? ` · ${it.sku}` : ""}</div>
+                    <div className="text-xs text-neutral-500">{it.variant_name}{it.sku ? ` · ${it.sku}` : ""}</div>
                   </div>
-                  <div className="text-sm text-stone-600">{inr(it.price)} × {it.qty}</div>
+                  <div className="text-sm text-neutral-600">{inr(it.price)} × {it.qty}</div>
                   <div className="w-24 text-right text-sm font-medium">{inr(it.price * it.qty)}</div>
                 </li>
               ))}
             </ul>
-            <dl className="space-y-1.5 border-t border-stone-100 bg-stone-50/60 px-5 py-4 text-sm">
-              <div className="flex justify-between"><dt className="text-stone-600">Subtotal</dt><dd>{inr(order.subtotal)}</dd></div>
-              <div className="flex justify-between"><dt className="text-stone-600">Shipping</dt><dd>{order.shipping ? inr(order.shipping) : "Free"}</dd></div>
-              {order.discount > 0 && <div className="flex justify-between"><dt className="text-stone-600">Discount</dt><dd className="text-emerald-700">− {inr(order.discount)}</dd></div>}
-              <div className="flex justify-between border-t border-stone-200 pt-2 text-base font-semibold"><dt>Total</dt><dd>{inr(order.total)}</dd></div>
-              <div className="flex justify-between text-xs text-stone-500"><dt>Paid via</dt><dd>{order.payment_method}</dd></div>
+            <dl className="space-y-1.5 border-t border-neutral-100 bg-neutral-50/60 px-5 py-4 text-sm">
+              <div className="flex justify-between"><dt className="text-neutral-600">Subtotal</dt><dd>{inr(order.subtotal)}</dd></div>
+              <div className="flex justify-between"><dt className="text-neutral-600">Shipping</dt><dd>{order.shipping ? inr(order.shipping) : "Free"}</dd></div>
+              {order.discount > 0 && <div className="flex justify-between"><dt className="text-neutral-600">Discount</dt><dd className="text-emerald-700">− {inr(order.discount)}</dd></div>}
+              <div className="flex justify-between border-t border-neutral-200 pt-2 text-base font-semibold"><dt>Total</dt><dd>{inr(order.total)}</dd></div>
+              <div className="flex justify-between text-xs text-neutral-500"><dt>Paid via</dt><dd>{order.payment_method}</dd></div>
             </dl>
           </div>
         </div>
@@ -97,13 +97,13 @@ export default async function OrderDetail({ params, searchParams }: { params: Pr
             {customer ? (
               <div className="mt-2 space-y-0.5">
                 <Link href={`/admin/customers?q=${encodeURIComponent(customer.email)}`} className="font-medium text-brand-700 hover:underline">{customer.name}</Link>
-                <div className="text-stone-500">{orderCount} order{orderCount === 1 ? "" : "s"}</div>
+                <div className="text-neutral-500">{orderCount} order{orderCount === 1 ? "" : "s"}</div>
                 <div className="pt-2">{customer.email}</div>
                 <div>{customer.phone}</div>
               </div>
-            ) : <p className="mt-2 text-stone-500">Guest checkout</p>}
+            ) : <p className="mt-2 text-neutral-500">Guest checkout</p>}
             <h3 className="mt-4 font-semibold">Shipping address</h3>
-            <p className="mt-1 whitespace-pre-line text-stone-700">{order.shipping_address}</p>
+            <p className="mt-1 whitespace-pre-line text-neutral-700">{order.shipping_address}</p>
           </div>
         </div>
       </div>

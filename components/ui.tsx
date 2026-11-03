@@ -5,9 +5,9 @@ export function PageHeader({ title, subtitle, back, children }: { title: string;
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
-        {back && <Link href={back.href} className="mb-1 inline-block text-sm text-stone-500 hover:text-stone-800">← {back.label}</Link>}
-        <h1 className="text-2xl font-semibold tracking-tight text-stone-900">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-stone-500">{subtitle}</p>}
+        {back && <Link href={back.href} className="mb-1 inline-block text-sm text-neutral-500 hover:text-neutral-800">← {back.label}</Link>}
+        <h1 className="font-serif text-2xl font-semibold text-ink">{title}</h1>
+        {subtitle && <p className="mt-0.5 text-sm text-neutral-500">{subtitle}</p>}
       </div>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
     </div>
@@ -18,8 +18,8 @@ const TONES: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
   paid: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
   delivered: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  draft: "bg-stone-100 text-stone-600 ring-stone-500/20",
-  archived: "bg-stone-100 text-stone-500 ring-stone-500/20",
+  draft: "bg-neutral-100 text-neutral-600 ring-neutral-500/20",
+  archived: "bg-neutral-100 text-neutral-500 ring-neutral-500/20",
   pending: "bg-amber-50 text-amber-800 ring-amber-600/25",
   processing: "bg-sky-50 text-sky-700 ring-sky-600/20",
   shipped: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
@@ -49,20 +49,20 @@ export function Flash({ show, children }: { show: boolean; children: React.React
 export function Empty({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div className="px-6 py-16 text-center">
-      <p className="font-medium text-stone-800">{title}</p>
-      {children && <div className="mt-1 text-sm text-stone-500">{children}</div>}
+      <p className="font-medium text-neutral-800">{title}</p>
+      {children && <div className="mt-1 text-sm text-neutral-500">{children}</div>}
     </div>
   );
 }
 
 export function Thumb({ src, alt, size = 40 }: { src: string | null; alt: string; size?: number }) {
   return (
-    <div className="shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-50" style={{ width: size, height: size }}>
+    <div className="shrink-0 overflow-hidden rounded-md border border-neutral-200 bg-neutral-50" style={{ width: size, height: size }}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={alt} className="h-full w-full object-cover" />
       ) : (
-        <div className="grid h-full w-full place-items-center text-[10px] text-stone-400">No image</div>
+        <div className="grid h-full w-full place-items-center text-[10px] text-neutral-400">No image</div>
       )}
     </div>
   );

@@ -1,50 +1,57 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #fbf7f2;
-  --color-brand-100: #f3e9dc;
-  --color-brand-200: #e6d2b8;
-  --color-brand-300: #d4b28a;
-  --color-brand-400: #c08f5e;
-  --color-brand-500: #a8713f;
-  --color-brand-600: #8a5a31;
-  --color-brand-700: #6b4427;
-  --color-brand-800: #4a2f1c;
-  --color-brand-900: #2b1b11;
-  --color-brand-950: #1c110a;
+  /* Naucera brand – taken from naucera.in */
+  --color-ink: #2a2b2a;      /* header, buttons, body text */
+  --color-night: #1d2827;    /* footer */
+  --color-teal: #002224;     /* product band */
+  --color-olive: #6e5a01;    /* header gradient end */
+  --color-gold: #d4b900;     /* highlight text */
+  /* Leaf green ramp, anchored on the site's #479b48 (= 500) */
+  --color-brand-50: #eef7ee;
+  --color-brand-100: #d8edd8;
+  --color-brand-200: #b3dbb4;
+  --color-brand-300: #86c387;
+  --color-brand-400: #5eae5f;
+  --color-brand-500: #479b48;
+  --color-brand-600: #3a7f3b;
+  --color-brand-700: #2f6630;
+  --color-brand-800: #275228;
+  --color-brand-900: #1f4120;
+  --color-brand-950: #10240f;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-serif: Georgia, "Times New Roman", serif;
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
 }
 
 html { -webkit-font-smoothing: antialiased; }
-body { background: #f6f4f1; color: #1f1a17; }
+body { background: #f4f5f4; color: #2a2b2a; }
 
 @utility card {
-  @apply rounded-xl border border-stone-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)];
+  @apply rounded-xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)];
 }
 @utility btn {
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:opacity-50 cursor-pointer whitespace-nowrap;
 }
 @utility btn-primary {
-  @apply btn bg-brand-800 text-white hover:bg-brand-900;
+  @apply btn bg-ink text-white hover:bg-black;
 }
 @utility btn-secondary {
-  @apply btn border border-stone-300 bg-white text-stone-800 hover:bg-stone-50;
+  @apply btn border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50;
 }
 @utility btn-danger {
   @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50;
 }
 @utility input {
-  @apply w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-stone-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+  @apply w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-neutral-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
 }
 @utility label {
-  @apply mb-1.5 block text-sm font-medium text-stone-700;
+  @apply mb-1.5 block text-sm font-medium text-neutral-700;
 }
 @utility hint {
-  @apply mt-1 text-xs text-stone-500;
+  @apply mt-1 text-xs text-neutral-500;
 }
 @utility th {
-  @apply px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-stone-500;
+  @apply px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500;
 }
 @utility td {
   @apply px-4 py-3 text-sm;

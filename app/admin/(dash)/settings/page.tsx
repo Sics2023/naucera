@@ -9,7 +9,7 @@ function Field({ name, label, value, hint, type = "text", prefix }: { name: stri
     <div>
       <label className="label" htmlFor={name}>{label}</label>
       <div className="flex">
-        {prefix && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-stone-300 bg-stone-50 px-3 text-sm text-stone-500">{prefix}</span>}
+        {prefix && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-neutral-300 bg-neutral-50 px-3 text-sm text-neutral-500">{prefix}</span>}
         <input id={name} name={name} type={type} defaultValue={value} className={`input ${prefix ? "rounded-l-none" : ""}`} />
       </div>
       {hint && <p className="hint">{hint}</p>}

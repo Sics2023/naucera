@@ -22,9 +22,9 @@ export default async function Customers({ searchParams }: { searchParams: Promis
     <>
       <PageHeader title="Customers" subtitle={`${rows.length} customer${rows.length === 1 ? "" : "s"}`} />
       <div className="card overflow-hidden">
-        <form className="flex gap-2 border-b border-stone-100 p-3">
+        <form className="flex gap-2 border-b border-neutral-100 p-3">
           <div className="relative flex-1">
-            <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-stone-400" />
+            <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-400" />
             <input name="q" defaultValue={q} placeholder="Search name, email, phone or city" className="input pl-9" />
           </div>
           <button className="btn-secondary">Search</button>
@@ -32,15 +32,15 @@ export default async function Customers({ searchParams }: { searchParams: Promis
         {rows.length === 0 ? <Empty title="No customers found" /> : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-stone-50/60"><tr><th className="th">Customer</th><th className="th">Phone</th><th className="th">Location</th><th className="th">Orders</th><th className="th">Last order</th><th className="th text-right">Total spent</th></tr></thead>
-              <tbody className="divide-y divide-stone-100">
+              <thead className="bg-neutral-50/60"><tr><th className="th">Customer</th><th className="th">Phone</th><th className="th">Location</th><th className="th">Orders</th><th className="th">Last order</th><th className="th text-right">Total spent</th></tr></thead>
+              <tbody className="divide-y divide-neutral-100">
                 {rows.map((c) => (
-                  <tr key={c.id} className="hover:bg-stone-50">
-                    <td className="td"><div className="font-medium">{c.name}</div><div className="text-xs text-stone-500">{c.email}</div></td>
-                    <td className="td whitespace-nowrap text-stone-600">{c.phone}</td>
-                    <td className="td text-stone-600">{c.city}, {c.state}</td>
+                  <tr key={c.id} className="hover:bg-neutral-50">
+                    <td className="td"><div className="font-medium">{c.name}</div><div className="text-xs text-neutral-500">{c.email}</div></td>
+                    <td className="td whitespace-nowrap text-neutral-600">{c.phone}</td>
+                    <td className="td text-neutral-600">{c.city}, {c.state}</td>
                     <td className="td"><Link href={`/admin/orders?q=${encodeURIComponent(c.email)}`} className="text-brand-700 hover:underline">{c.orders}</Link></td>
-                    <td className="td whitespace-nowrap text-stone-500">{c.last ? fmtDate(c.last) : "—"}</td>
+                    <td className="td whitespace-nowrap text-neutral-500">{c.last ? fmtDate(c.last) : "—"}</td>
                     <td className="td text-right font-medium">{inr(c.spent)}</td>
                   </tr>
                 ))}

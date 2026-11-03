@@ -13,8 +13,8 @@ export default function RevenueChart({ data }: { data: Point[] }) {
   const [hover, setHover] = useState<number | null>(null);
   if (!data.some((d) => d.revenue > 0)) {
     return (
-      <div className="grid h-56 place-items-center rounded-lg border border-dashed border-stone-200 text-center text-sm text-stone-500">
-        <div><p className="font-medium text-stone-700">No sales in the last 30 days yet</p><p className="mt-1">Daily revenue will appear here once orders come in.</p></div>
+      <div className="grid h-56 place-items-center rounded-lg border border-dashed border-neutral-200 text-center text-sm text-neutral-500">
+        <div><p className="font-medium text-neutral-700">No sales in the last 30 days yet</p><p className="mt-1">Daily revenue will appear here once orders come in.</p></div>
       </div>
     );
   }
@@ -48,7 +48,7 @@ export default function RevenueChart({ data }: { data: Point[] }) {
               {d.revenue > 0 && (
                 <path
                   d={`M${x + 1.5},${H - padB} V${top + r} q0,-${r} ${r},-${r} H${x + 1.5 + barW - r} q${r},0 ${r},${r} V${H - padB} Z`}
-                  fill={hover === i ? "#4a2f1c" : "#a8713f"}
+                  fill={hover === i ? "#2f6630" : "#479b48"}
                 />
               )}
               {(i % 5 === 0 || i === data.length - 1) && (
@@ -60,11 +60,11 @@ export default function RevenueChart({ data }: { data: Point[] }) {
       </svg>
       {h && hover != null && (
         <div
-          className="pointer-events-none absolute top-0 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs shadow-lg"
+          className="pointer-events-none absolute top-0 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs shadow-lg"
           style={{ left: `${((padL + hover * bw + bw / 2) / W) * 100}%`, transform: `translateX(${hover > data.length * 0.7 ? "-100%" : hover < data.length * 0.2 ? "0" : "-50%"})` }}
         >
-          <div className="font-medium text-stone-900">{label(h.date)}</div>
-          <div className="text-stone-600">{fmt(h.revenue)} · {h.orders} order{h.orders === 1 ? "" : "s"}</div>
+          <div className="font-medium text-neutral-900">{label(h.date)}</div>
+          <div className="text-neutral-600">{fmt(h.revenue)} · {h.orders} order{h.orders === 1 ? "" : "s"}</div>
         </div>
       )}
     </div>

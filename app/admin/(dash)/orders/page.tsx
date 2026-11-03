@@ -36,16 +36,16 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
     <>
       <PageHeader title="Orders" subtitle={`${orders.length} order${orders.length === 1 ? "" : "s"}`} />
       <div className="card overflow-hidden">
-        <div className="flex gap-1 overflow-x-auto border-b border-stone-100 px-3 pt-2">
+        <div className="flex gap-1 overflow-x-auto border-b border-neutral-100 px-3 pt-2">
           {TABS.map((t) => (
             <Link key={t.label} href={`/admin/orders${t.status ? `?status=${t.status}` : ""}`}
-              className={`-mb-px border-b-2 px-3 py-2 text-sm whitespace-nowrap ${(sp.status ?? "") === t.status ? "border-brand-700 font-medium" : "border-transparent text-stone-500 hover:text-stone-800"}`}>{t.label}</Link>
+              className={`-mb-px border-b-2 px-3 py-2 text-sm whitespace-nowrap ${(sp.status ?? "") === t.status ? "border-brand-700 font-medium" : "border-transparent text-neutral-500 hover:text-neutral-800"}`}>{t.label}</Link>
           ))}
         </div>
-        <form className="flex flex-wrap gap-2 border-b border-stone-100 p-3">
+        <form className="flex flex-wrap gap-2 border-b border-neutral-100 p-3">
           {sp.status && <input type="hidden" name="status" value={sp.status} />}
           <div className="relative min-w-56 flex-1">
-            <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-stone-400" />
+            <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-400" />
             <input name="q" defaultValue={sp.q} placeholder="Search order #, customer name, email or phone" className="input pl-9" />
           </div>
           <select name="payment" defaultValue={sp.payment ?? ""} className="input w-auto">
@@ -56,16 +56,16 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
         {orders.length === 0 ? <Empty title="No orders found" /> : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-stone-50/60"><tr><th className="th">Order</th><th className="th">Date</th><th className="th">Customer</th><th className="th">Payment</th><th className="th">Fulfilment</th><th className="th">Items</th><th className="th text-right">Total</th></tr></thead>
-              <tbody className="divide-y divide-stone-100">
+              <thead className="bg-neutral-50/60"><tr><th className="th">Order</th><th className="th">Date</th><th className="th">Customer</th><th className="th">Payment</th><th className="th">Fulfilment</th><th className="th">Items</th><th className="th text-right">Total</th></tr></thead>
+              <tbody className="divide-y divide-neutral-100">
                 {orders.map((o) => (
-                  <tr key={o.id} className="hover:bg-stone-50">
+                  <tr key={o.id} className="hover:bg-neutral-50">
                     <td className="td font-medium"><Link href={`/admin/orders/${o.id}`} className="hover:underline">{o.number}</Link></td>
-                    <td className="td whitespace-nowrap text-stone-500">{fmtDateTime(o.created_at)}</td>
-                    <td className="td whitespace-nowrap">{o.customer ?? "Guest"}<span className="block text-xs text-stone-500">{o.city}</span></td>
-                    <td className="td"><Badge tone={o.payment_status} /><span className="block pt-0.5 text-xs text-stone-500">{o.payment_method}</span></td>
+                    <td className="td whitespace-nowrap text-neutral-500">{fmtDateTime(o.created_at)}</td>
+                    <td className="td whitespace-nowrap">{o.customer ?? "Guest"}<span className="block text-xs text-neutral-500">{o.city}</span></td>
+                    <td className="td"><Badge tone={o.payment_status} /><span className="block pt-0.5 text-xs text-neutral-500">{o.payment_method}</span></td>
                     <td className="td"><Badge tone={o.status} /></td>
-                    <td className="td text-stone-600">{o.items}</td>
+                    <td className="td text-neutral-600">{o.items}</td>
                     <td className="td text-right font-medium">{inr(o.total)}</td>
                   </tr>
                 ))}
