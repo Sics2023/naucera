@@ -20,7 +20,7 @@ More screenshots are in [`docs/screenshots`](docs/screenshots).
 
 The admin is protected by a login, and it works on both desktop and mobile.
 
-> **Sample data:** the first time the app connects to an empty database, it creates the tables and fills them with a sample catalogue of 15 coffee and tea premixes, customers and about 3 months of orders, so the dashboard shows realistic numbers in a demo. Set `SEED_SAMPLE_DATA=0` to start with an empty store instead.
+> **Catalogue:** on first start, the app loads the Naucera product list (`lib/catalog.ts`, taken from *Naucera_Product_List.xlsx*). That's 14 products in 3 categories (Tea, Coffee and Cooler Premixes), with 1 kg and single-serve sachet pack sizes. The sheet had no prices or stock, so products are created as **Draft** with "Price not set". Add prices and stock in the admin, then set each product to Active. Product images are generated placeholders; replace them with real photos.
 
 ## Database
 

@@ -63,6 +63,7 @@ export default async function Dashboard() {
   );
   const toFulfil = (await get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing')"))!.n;
   const activeProducts = (await get<{ n: number }>("SELECT COUNT(*) AS n FROM products WHERE status = 'active'"))!.n;
+  const needPrice = (await get<{ n: number }>("SELECT COUNT(DISTINCT product_id) AS n FROM product_variants WHERE price <= 0"))!.n;
 
   const kpis = [
     { label: "Revenue · 30 days", value: inr(Math.round(cur.revenue)), now: cur.revenue, prev: prev.revenue },
@@ -103,7 +104,7 @@ export default async function Dashboard() {
           <ul className="mt-3 space-y-2 text-sm">
             <li>
               <Link href="/admin/orders?status=open" className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2.5 text-amber-900 hover:bg-amber-100">
-                <span><b>{toFulfil}</b> orders to fulfil</span><span>→</span>
+                <span><b>{toFulfil}</b> order{toFulfil === 1 ? "" : "s"} to fulfil</span><span>→</span>
               </Link>
             </li>
             <li>
@@ -113,9 +114,16 @@ export default async function Dashboard() {
             </li>
             <li>
               <Link href="/admin/products?status=active" className="flex items-center justify-between rounded-lg bg-stone-50 px-3 py-2.5 hover:bg-stone-100">
-                <span><b>{activeProducts}</b> products live</span><span>→</span>
+                <span><b>{activeProducts}</b> product{activeProducts === 1 ? "" : "s"} live</span><span>→</span>
               </Link>
             </li>
+            {needPrice > 0 && (
+              <li>
+                <Link href="/admin/products?status=draft" className="flex items-center justify-between rounded-lg bg-red-50 px-3 py-2.5 text-red-900 hover:bg-red-100">
+                  <span><b>{needPrice}</b> product{needPrice === 1 ? " needs" : "s need"} a price</span><span>→</span>
+                </Link>
+              </li>
+            )}
           </ul>
           <h3 className="mt-5 flex items-center gap-1.5 text-sm font-semibold"><AlertTriangle size={15} className="text-amber-600" /> Low stock</h3>
           <ul className="mt-2 divide-y divide-stone-100 text-sm">
@@ -140,6 +148,9 @@ export default async function Dashboard() {
             <table className="w-full">
               <thead className="border-y border-stone-100 bg-stone-50/60"><tr><th className="th">Order</th><th className="th">Customer</th><th className="th">Date</th><th className="th">Payment</th><th className="th">Status</th><th className="th text-right">Total</th></tr></thead>
               <tbody className="divide-y divide-stone-100">
+                {recent.length === 0 && (
+                  <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-stone-500">No orders yet. New orders from the store will show up here.</td></tr>
+                )}
                 {recent.map((o) => (
                   <tr key={o.id} className="hover:bg-stone-50">
                     <td className="td font-medium"><Link href={`/admin/orders/${o.id}`} className="hover:underline">{o.number}</Link></td>
@@ -157,6 +168,7 @@ export default async function Dashboard() {
         <div className="card p-5">
           <h2 className="font-semibold">Top products · 30 days</h2>
           <ul className="mt-3 space-y-3">
+            {top.length === 0 && <li className="py-6 text-center text-sm text-stone-500">Best sellers will appear here after your first sales.</li>}
             {top.map((p, i) => (
               <li key={p.id} className="flex items-center gap-3">
                 <span className="w-4 text-xs text-stone-400">{i + 1}</span>

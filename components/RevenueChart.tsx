@@ -11,6 +11,13 @@ const label = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("en-IN
 /** Daily revenue, single series bar chart with hover tooltip. */
 export default function RevenueChart({ data }: { data: Point[] }) {
   const [hover, setHover] = useState<number | null>(null);
+  if (!data.some((d) => d.revenue > 0)) {
+    return (
+      <div className="grid h-56 place-items-center rounded-lg border border-dashed border-stone-200 text-center text-sm text-stone-500">
+        <div><p className="font-medium text-stone-700">No sales in the last 30 days yet</p><p className="mt-1">Daily revenue will appear here once orders come in.</p></div>
+      </div>
+    );
+  }
   const W = 720, H = 300, padL = 44, padB = 24, padT = 12;
   const max = Math.max(1, ...data.map((d) => d.revenue));
   const step = Math.pow(10, Math.floor(Math.log10(max)));

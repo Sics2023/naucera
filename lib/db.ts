@@ -1,6 +1,7 @@
 import mysql from "mysql2/promise";
 import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { seed } from "./seed";
+import { CATALOG_VERSION, insertCatalog, removeDemoData } from "./catalog";
 
 /**
  * MySQL / MariaDB connection (e.g. Hostinger hPanel → Databases → MySQL Databases).
@@ -205,13 +206,33 @@ async function ready() {
       const p = pool();
       for (const stmt of SCHEMA) await p.query(stmt);
       const [rows] = await p.query<RowDataPacket[]>("SELECT COUNT(*) AS n FROM categories");
-      if (Number(rows[0].n) === 0 && process.env.SEED_SAMPLE_DATA !== "0") await tx((d) => seed(d));
+      if (Number(rows[0].n) === 0) await tx((d) => seed(d));
+      await migrateCatalog();
     })().catch((e) => {
       globalThis.__naucera_ready = undefined; // retry on next request
       throw e;
     });
   }
   return globalThis.__naucera_ready;
+}
+
+/**
+ * One-time upgrade for databases created by the first version: removes the demo products,
+ * customers and orders and loads the real Naucera catalogue.
+ */
+async function migrateCatalog() {
+  await tx(async (d) => {
+    const v = await d.get<{ value: string }>("SELECT value FROM settings WHERE name = 'catalog_version' FOR UPDATE");
+    if (v && Number(v.value) >= Number(CATALOG_VERSION)) return;
+    await removeDemoData(d);
+    await insertCatalog(d);
+    await d.run(
+      "INSERT INTO settings (name, value) VALUES ('catalog_version', ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
+      CATALOG_VERSION
+    );
+    await d.run("UPDATE settings SET value = 'Tea, Coffee & Cooler Premixes' WHERE name = 'tagline' AND value = 'Coffee & Tea Premixes'");
+    await d.run("UPDATE settings SET value = '' WHERE name IN ('email', 'phone') AND value IN ('hello@naucera.in', '+91 00000 00000')");
+  });
 }
 
 /** Run fn inside a transaction on a single connection. */

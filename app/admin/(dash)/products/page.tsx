@@ -81,7 +81,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
                       <span className="text-stone-500"> · {p.variant_count} variant{p.variant_count === 1 ? "" : "s"}</span>
                     </td>
                     <td className="td text-stone-600">{p.category_name ?? "—"}</td>
-                    <td className="td text-right whitespace-nowrap">{p.min_price === p.max_price ? inr(p.min_price) : `${inr(p.min_price)} – ${inr(p.max_price)}`}</td>
+                    <td className="td text-right whitespace-nowrap">
+                      {!p.max_price ? <span className="text-red-700">Price not set</span> : p.min_price === p.max_price ? inr(p.min_price) : `${inr(p.min_price)} – ${inr(p.max_price)}`}
+                    </td>
                   </tr>
                 ))}
               </tbody>
