@@ -28,7 +28,10 @@ export default function Sidebar({ storeName, openOrders }: { storeName: string; 
       {open && <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />}
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-brand-950 text-brand-100 transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-14 items-center justify-between px-5">
-          <Link href="/admin" className="font-serif text-lg tracking-[0.28em] text-white">{storeName.toUpperCase()}</Link>
+          <Link href="/admin" aria-label={storeName}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/naucera-logo.png" alt={storeName} className="h-7 w-auto" />
+          </Link>
           <button onClick={() => setOpen(false)} className="lg:hidden" aria-label="Close menu"><X size={18} /></button>
         </div>
         <nav className="flex-1 space-y-0.5 px-3 py-3">

@@ -2,7 +2,7 @@
 
 export default function DashError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <div className="card mx-auto mt-10 max-w-lg p-6">
+    <div className="card mx-4 mx-auto mt-16 max-w-lg p-6">
       <h1 className="text-lg font-semibold">Something went wrong loading this page</h1>
       <p className="mt-2 text-sm text-stone-600">
         If this is a new installation, check the database settings (<code>DB_HOST</code>, <code>DB_NAME</code>, <code>DB_USER</code>,{" "}
